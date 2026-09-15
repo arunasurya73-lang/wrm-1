@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "echo 'Static build ready'",
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start-backend": "node server.js"
   },
   "keywords": [
     "air-quality",

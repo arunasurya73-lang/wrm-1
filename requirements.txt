@@ -1,0 +1,2 @@
+# AirSense Delhi NCR is a Node.js web platform.
+# This file is provided for environment detection compatibility.

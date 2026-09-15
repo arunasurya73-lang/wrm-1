@@ -491,6 +491,8 @@ html.light.weather-night .cloud-mass {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
   padding: 0.85rem 1.5rem;
   background: var(--bg-card);
   backdrop-filter: blur(var(--blur-amount));
@@ -620,6 +622,7 @@ html.light.weather-night .cloud-mass {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .station-dropdown-wrap select {
@@ -633,6 +636,10 @@ html.light.weather-night .cloud-mass {
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .station-dropdown-wrap select:focus {
   border-color: var(--accent-blue);

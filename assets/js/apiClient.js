@@ -4,7 +4,14 @@
 
 class APIClient {
   constructor() {
-    this.baseUrl = window.location.origin;
+    // ⚠️ IMPORTANT: Replace this URL with your actual Render.com live URL
+    const RENDER_BACKEND_URL = 'https://airsense-delhi.onrender.com'; 
+    
+    // Use localhost for local development, otherwise use the Render backend
+    this.baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? window.location.origin 
+      : RENDER_BACKEND_URL;
+      
     this.latencyMs = 0;
     this.status = 'CONNECTING'; // 'CONNECTED' | 'OFFLINE' | 'DEGRADED'
     this.listeners = [];

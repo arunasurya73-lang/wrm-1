@@ -3,19 +3,24 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { getStations, getStationDetails } from './backend/controllers/stationController.js';
+import { getForecast } from './backend/controllers/forecastController.js';
+import { getHotspots } from './backend/controllers/hotspotController.js';
+import { getHealth } from './backend/controllers/healthController.js';
+import { handleIngest } from './backend/controllers/ingestController.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env file automatically if present
+// Automatic Environment Loading
 try {
-  if (fs.existsSync(path.join(__dirname, '.env'))) {
-    if (process.loadEnvFile) {
-      process.loadEnvFile(path.join(__dirname, '.env'));
-      console.log('🔑 Loaded environment variables from .env');
-    }
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath) && process.loadEnvFile) {
+    process.loadEnvFile(envPath);
+    console.log('🔑 Environment variables loaded from .env');
   }
 } catch (e) {
-  console.warn('Note: .env file not parsed:', e.message);
+  console.warn('Note: .env parsing skipped:', e.message);
 }
 
 const PORT = process.env.PORT || 3000;
@@ -27,16 +32,13 @@ const MIME_TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.webp': 'image/webp'
 };
 
-export default async function handler(req, res) {
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
-
-  // Polyfill express-like status/json helpers for Serverless & Native HTTP compatibility
+function enhanceResponse(res) {
   if (!res.status) {
     res.status = function(code) {
       res.statusCode = code;
@@ -49,31 +51,50 @@ export default async function handler(req, res) {
       res.end(JSON.stringify(data, null, 2));
     };
   }
+}
 
-  // Handle API routes
+export default async function handler(req, res) {
+  enhanceResponse(res);
+  const host = req.headers ? (req.headers.host || 'localhost:3000') : 'localhost:3000';
+  const parsedUrl = new URL(req.url, `http://${host}`);
+  const pathname = parsedUrl.pathname;
+
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // API Routing Layer
+  if (pathname === '/api/health' || pathname === '/api/health.js') {
+    return await getHealth(req, res);
+  }
+
   if (pathname === '/api/stations' || pathname === '/api/stations.js') {
-    try {
-      const { default: apiHandler } = await import('./api/stations.js');
-      return await apiHandler(req, res);
-    } catch (err) {
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ error: err.message }));
-    }
+    return await getStations(req, res);
+  }
+
+  if (pathname.startsWith('/api/stations/')) {
+    const stationId = pathname.replace('/api/stations/', '');
+    return await getStationDetails(req, res, stationId);
+  }
+
+  if (pathname === '/api/forecast' || pathname === '/api/forecast.js') {
+    return await getForecast(req, res);
+  }
+
+  if (pathname === '/api/hotspots' || pathname === '/api/hotspots.js') {
+    return await getHotspots(req, res);
   }
 
   if (pathname === '/api/ingest' || pathname === '/api/ingest.js') {
-    try {
-      const { default: apiHandler } = await import('./api/ingest.js');
-      return await apiHandler(req, res);
-    } catch (err) {
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ error: err.message }));
-    }
+    return await handleIngest(req, res);
   }
 
-  // Handle Static Files
+  // Static File Serving
   let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
 
   try {
@@ -84,26 +105,31 @@ export default async function handler(req, res) {
       return fs.createReadStream(filePath).pipe(res);
     }
 
-    // Fallback to index.html for client-side routing
+    // Client-side fallback to index.html
     const indexPath = path.join(__dirname, 'index.html');
     if (fs.existsSync(indexPath)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return fs.createReadStream(indexPath).pipe(res);
     }
   } catch (err) {
-    console.error('Static serve error:', err);
+    console.error('Static serving error:', err);
   }
 
   res.statusCode = 404;
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.end('<h1>404 Not Found</h1><p>Resource not found on AirSense server.</p>');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({ error: 'Endpoint or asset not found', path: pathname }));
 }
 
 const server = http.createServer(handler);
 
-// Only listen on port if not in Vercel Serverless environment
 if (!process.env.VERCEL && !process.env.NOW_REGION) {
   server.listen(PORT, () => {
-    console.log(`🌿 AirSense Delhi server running at: http://localhost:${PORT}`);
+    console.log(`🌿 AirSense Delhi Production Backend is running at: http://localhost:${PORT}`);
+    console.log(`📡 Endpoints available:`);
+    console.log(`   - GET  /api/health`);
+    console.log(`   - GET  /api/stations`);
+    console.log(`   - GET  /api/forecast?lat=28.6139&lng=77.2090`);
+    console.log(`   - GET  /api/hotspots`);
+    console.log(`   - POST /api/ingest`);
   });
 }

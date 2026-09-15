@@ -3,6 +3,7 @@ import { AQIGauge } from './assets/js/aqiGauge.js';
 import { MapTracker } from './assets/js/mapTracker.js';
 import { ForecastCharts } from './assets/js/charts.js';
 import { fetchLiveWeather, mapWeatherToVisualState, getWeatherStateMetadata, fetchAtmosphericProfile, computeStubblePlumeForecast, fetchLiveStationTelemetry } from './assets/js/weatherService.js';
+import { apiClient } from './assets/js/apiClient.js';
 
 class AirSenseApp {
   constructor() {
@@ -31,6 +32,7 @@ class AirSenseApp {
 
   async init() {
     this.setupTheme();
+    this.setupBackendTelemetryStatus();
     this.populateStationDropdown();
     this.initVisualComponents();
     this.attachEventListeners();
@@ -55,21 +57,43 @@ class AirSenseApp {
   }
 
   // ==========================================
+  // Backend Connection & Health Status Telemetry
+  // ==========================================
+  setupBackendTelemetryStatus() {
+    const badge = document.getElementById('backend-status-badge');
+    const statusText = document.getElementById('backend-status-text');
+    const latencyBadge = document.getElementById('backend-latency-badge');
+
+    apiClient.onStatusChange(({ status, latencyMs }) => {
+      if (!badge) return;
+      if (status === 'CONNECTED') {
+        badge.classList.remove('offline');
+        if (statusText) statusText.textContent = 'Backend Live';
+        if (latencyBadge) latencyBadge.textContent = `${latencyMs}ms`;
+      } else {
+        badge.classList.add('offline');
+        if (statusText) statusText.textContent = 'Offline Cache';
+        if (latencyBadge) latencyBadge.textContent = 'Local';
+      }
+    });
+
+    // Initial ping to backend health endpoint
+    apiClient.getHealth().catch(() => {});
+  }
+
+  // ==========================================
   // Live API Telemetry Fetcher
   // ==========================================
   async fetchLiveTelemetry() {
     try {
-      const res = await fetch('/api/stations');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.stations && data.stations.length > 0) {
-          this.stations = data.stations;
-          this.populateStationDropdown();
-          this.showToast('Live Telemetry Synced', 'Successfully received telemetry from Global & Delhi NCR network', 'info');
-        }
+      const data = await apiClient.getStations();
+      if (data && data.stations && data.stations.length > 0) {
+        this.stations = data.stations;
+        this.populateStationDropdown();
+        this.showToast('Live Telemetry Synced', 'Directly connected to AirSense Core Backend', 'info');
       }
     } catch (e) {
-      console.log('Using local telemetry cache (offline or static preview mode)');
+      console.log('Using local telemetry cache (offline fallback)');
     }
   }
 

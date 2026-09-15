@@ -573,6 +573,49 @@ html.light.weather-night .cloud-mass {
   }
 }
 
+/* Backend End-to-End Status Pill */
+.backend-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #0284C7;
+  transition: all 0.3s ease;
+}
+
+.backend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10B981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.backend-status-pill.offline {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #EF4444;
+}
+
+.backend-status-pill.offline .backend-dot {
+  background-color: #EF4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+}
+
+.backend-latency {
+  font-size: 0.65rem;
+  opacity: 0.85;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+
 .nav-actions {
   display: flex;
   align-items: center;

@@ -53,7 +53,7 @@ function enhanceResponse(res) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   enhanceResponse(res);
   const host = req.headers ? (req.headers.host || 'localhost:3000') : 'localhost:3000';
   const parsedUrl = new URL(req.url, `http://${host}`);

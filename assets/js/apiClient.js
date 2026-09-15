@@ -5,7 +5,7 @@
 class APIClient {
   constructor() {
     // ⚠️ IMPORTANT: Replace this URL with your actual Render.com live URL
-    const RENDER_BACKEND_URL = 'https://airsense-delhi.onrender.com'; 
+    const RENDER_BACKEND_URL = 'https://wrm-1-1.onrender.com'; 
     
     // Use localhost for local development, otherwise use the Render backend
     this.baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'

@@ -95,7 +95,7 @@ async function handler(req, res) {
   }
 
   // Static File Serving
-  let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+  let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
 
   try {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
@@ -106,7 +106,7 @@ async function handler(req, res) {
     }
 
     // Client-side fallback to index.html
-    const indexPath = path.join(__dirname, 'index.html');
+    const indexPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(indexPath)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return fs.createReadStream(indexPath).pipe(res);

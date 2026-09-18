@@ -8,6 +8,7 @@ import { getForecast } from './backend/controllers/forecastController.js';
 import { getHotspots } from './backend/controllers/hotspotController.js';
 import { getHealth } from './backend/controllers/healthController.js';
 import { handleIngest } from './backend/controllers/ingestController.js';
+import { handleChat } from './backend/controllers/chatController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,6 +93,10 @@ async function handler(req, res) {
 
   if (pathname === '/api/ingest' || pathname === '/api/ingest.js') {
     return await handleIngest(req, res);
+  }
+
+  if (pathname === '/api/chat' || pathname === '/api/chat.js') {
+    return await handleChat(req, res);
   }
 
   // Static File Serving

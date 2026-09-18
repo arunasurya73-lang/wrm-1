@@ -70,44 +70,72 @@
       </div>
 
       <div class="nav-actions">
-        <!-- Station Quick Selector -->
-        <div class="station-dropdown-wrap">
-          <select id="station-select" aria-label="Select Monitoring Station">
-            <!-- Populated via JS -->
-          </select>
+        <!-- Controls: Station & Theme & Refresh -->
+        <div class="nav-controls-row">
+          <div class="station-dropdown-wrap main-station-wrap">
+            <select id="station-select" aria-label="Select Monitoring Station">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="station-dropdown-wrap theme-dropdown-wrap">
+            <select id="theme-select" aria-label="Select UI Theme">
+              <option value="light" selected>☀️ Clean Light</option>
+              <option value="dark">🌑 Dark Glass</option>
+              <option value="cyberpunk">⚡ Cyberpunk</option>
+              <option value="emerald">🌿 Bio Emerald</option>
+            </select>
+          </div>
+
+          <!-- Refresh Data Button -->
+          <button id="refresh-btn" class="icon-btn" title="Refresh Live Data" aria-label="Refresh Data">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+          </button>
         </div>
 
         <!-- Action Pills -->
-        <button id="compare-btn" class="nav-action-pill" title="Compare Stations">
-          <span>⚡</span> Compare
-        </button>
+        <div class="nav-pills-row">
+          <button id="compare-btn" class="nav-action-pill" title="Compare Stations">
+            <span>⚖️</span> Compare
+          </button>
 
-        <button id="alerts-btn" class="nav-action-pill" title="AQI Alert Settings">
-          <span>🔔</span> Alerts
-        </button>
+          <button id="alerts-btn" class="nav-action-pill" title="AQI Alert Settings">
+            <span>🔔</span> Alerts
+          </button>
 
-        <button id="export-btn" class="nav-action-pill" title="Export Clean Report">
-          <span>📥</span> Export
-        </button>
+          <button id="export-btn" class="nav-action-pill" title="Export Clean Report">
+            <span>📥</span> Export
+          </button>
 
-        <!-- Refresh Data Button -->
-        <button id="refresh-btn" class="icon-btn" title="Refresh Live Data" aria-label="Refresh Data">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-            <path d="M16 21h5v-5"/>
-          </svg>
-        </button>
+          <button id="btn-live-sensors" class="nav-action-pill module-toggle-btn" title="Live AQI & Sensor Telemetry">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Live AQI & Sensors</span>
+            <span class="pill-badge pill-badge-green">Live</span>
+          </button>
 
-        <!-- Theme Selector Dropdown -->
-        <div class="station-dropdown-wrap">
-          <select id="theme-select" aria-label="Select UI Theme">
-            <option value="light" selected>☀️ Clean Light (Weather-Reactive)</option>
-            <option value="dark">🌑 Dark Glass</option>
-            <option value="cyberpunk">⚡ Cyberpunk</option>
-            <option value="emerald">🌿 Bio Emerald</option>
-          </select>
+          <button id="btn-72h-forecast" class="nav-action-pill module-toggle-btn" title="72-Hour Forecast & Inversion Model">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>72-Hour Forecast</span>
+            <span class="pill-badge pill-badge-blue">72h</span>
+          </button>
+
+          <button id="btn-fire-tracker" class="nav-action-pill module-toggle-btn" title="NASA Fire & Plume Tracker">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+            </svg>
+            <span>Fire & Plume Tracker</span>
+            <span class="pill-badge pill-badge-red">Plume</span>
+          </button>
         </div>
       </div>
     </header>
@@ -141,11 +169,15 @@
           <span class="scrubber-time-display" id="scrubber-time-label">Live Baseline (+0h)</span>
         </div>
         <div class="scrubber-controls">
-          <button id="scrubber-play-btn" class="scrubber-btn">
+          <button id="scrubber-play-btn" class="scrubber-btn" type="button">
             <span id="play-icon">▶</span> Play 72h Loop
           </button>
-          <button id="scrubber-reset-btn" class="scrubber-btn secondary">
+          <button id="scrubber-reset-btn" class="scrubber-btn secondary" type="button">
             Reset to Live
+          </button>
+          <button id="scrubber-expand-btn" class="scrubber-btn toggle-charts-btn" type="button" aria-expanded="false" title="Toggle 72-hour forecast charts outlook">
+            <span class="toggle-icon">📊</span> <span id="toggle-charts-text">View 3-Chart Outlook</span>
+            <span class="chevron-indicator" id="scrubber-chevron">▼</span>
           </button>
         </div>
       </div>
@@ -153,6 +185,50 @@
         <span class="scrubber-tick-label">Now (+0h)</span>
         <input type="range" id="time-slider" min="0" max="72" value="0" step="1" class="time-range-slider" aria-label="72-Hour Atmospheric Forecast Scrubber">
         <span class="scrubber-tick-label">+72h Outlook</span>
+      </div>
+
+      <!-- Nested Horizontally Scrollable 72-Hour Forecast Charts Drawer -->
+      <div class="scrubber-charts-drawer" id="scrubber-charts-drawer" style="display: none;">
+        <div class="scrubber-charts-scroll-track">
+          <!-- 72-Hour Coupled Meteorology-Chemistry AQI Outlook with Confidence Band -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">72-Hour Coupled Meteorology-Chemistry AQI Outlook</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">Hourly projection with atmospheric inversion-expanded confidence envelope</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-7d"></canvas>
+            </div>
+          </div>
+
+          <!-- 72-Hour Multi-Pollutant & Smoke Dispersion Outlook -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">72-Hour Multi-Pollutant & Smoke Dispersion Outlook</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">72-hour hourly PM2.5, PM10 and stubble smoke fraction progression</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-24h"></canvas>
+            </div>
+          </div>
+
+          <!-- Pollutant Severity Fingerprint Radar -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">Pollutant Severity Fingerprint</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">Multi-pollutant ratios vs WHO Safety Standard</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-radar"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -327,48 +403,6 @@
       </div>
     </section>
 
-    <!-- Analytics & Forecast Charts Section (Explicit 72-Hour Outlook) -->
-    <section class="charts-section">
-      <!-- 72-Hour Coupled Meteorology-Chemistry AQI Outlook with Confidence Band -->
-      <div class="glass-card">
-        <div class="chart-card-header">
-          <div>
-            <h3 style="font-size: 1.15rem;">72-Hour Coupled Meteorology-Chemistry AQI Outlook</h3>
-            <p style="font-size: 0.78rem; color: var(--text-secondary);">Hourly projection with atmospheric inversion-expanded confidence envelope</p>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-7d"></canvas>
-        </div>
-      </div>
-
-      <!-- 72-Hour Multi-Pollutant & Smoke Dispersion Outlook -->
-      <div class="glass-card">
-        <div class="chart-card-header">
-          <div>
-            <h3 style="font-size: 1.15rem;">72-Hour Multi-Pollutant & Smoke Dispersion Outlook</h3>
-            <p style="font-size: 0.78rem; color: var(--text-secondary);">72-hour hourly PM2.5, PM10 and stubble smoke fraction progression</p>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-24h"></canvas>
-        </div>
-      </div>
-
-      <!-- Pollutant Severity Fingerprint Radar -->
-      <div class="glass-card">
-        <div class="chart-card-header">
-          <div>
-            <h3 style="font-size: 1.15rem;">Pollutant Severity Fingerprint</h3>
-            <p style="font-size: 0.78rem; color: var(--text-secondary);">Multi-pollutant ratios vs WHO Safety Standard</p>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="chart-radar"></canvas>
-        </div>
-      </div>
-    </section>
-
     <!-- Station Leaderboard Table & Region Filters -->
     <section class="glass-card table-section">
       <div class="table-header-row">
@@ -383,7 +417,6 @@
             <button class="region-tab-btn active" data-region="all">All Stations</button>
             <button class="region-tab-btn" data-region="Delhi NCR">📍 Delhi NCR</button>
             <button class="region-tab-btn" data-region="India">🇮🇳 India Metros</button>
-            <button class="region-tab-btn" data-region="Global">🌍 World Cities</button>
           </div>
 
           <div class="search-input-wrap">
@@ -484,6 +517,88 @@
         <button id="save-alerts-btn" class="primary-btn-large">Save & Apply Alert Preferences</button>
       </div>
     </div>
+  </div>
+
+  <!-- Floating AI Chatbot Launcher Button -->
+  <button id="ai-chat-launcher" class="ai-chat-launcher" aria-label="Open AirSense AI Chatbot" title="Chat with AirSense AI Advisor">
+    <div class="launcher-glow-ring"></div>
+    <div class="launcher-icon-inner">
+      <svg class="launcher-wand-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+        <path d="M5 3v4"></path>
+        <path d="M3 5h4"></path>
+        <path d="M19 17v4"></path>
+        <path d="M17 19h4"></path>
+      </svg>
+    </div>
+    <span class="launcher-label">Ask AI</span>
+    <span id="ai-chat-badge" class="ai-chat-badge" title="AI Advisor Online"></span>
+  </button>
+
+  <!-- Floating AI Chatbot Box / Modal Window -->
+  <div id="ai-chat-box" class="ai-chat-box" aria-hidden="true" role="dialog" aria-label="AirSense AI Assistant">
+    <!-- Chat Header -->
+    <div class="ai-chat-header">
+      <div class="ai-chat-header-brand">
+        <div class="ai-avatar-badge">
+          <span>✨</span>
+          <span class="ai-online-dot"></span>
+        </div>
+        <div class="ai-header-titles">
+          <h3>AirSense AI</h3>
+          <span class="ai-header-subtitle">Environmental & Health Advisor</span>
+        </div>
+      </div>
+      <div class="ai-header-actions">
+        <button id="ai-chat-clear" class="ai-action-btn" title="Clear Conversation" aria-label="Clear chat">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+        <button id="ai-chat-minimize" class="ai-action-btn" title="Minimize" aria-label="Minimize chat">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button id="ai-chat-close" class="ai-action-btn close-x" title="Close" aria-label="Close chat">&times;</button>
+      </div>
+    </div>
+
+    <!-- Live Context Bar -->
+    <div class="ai-chat-context-bar">
+      <span class="context-pill">⚡ Real-time Delhi Telemetry Grounded</span>
+      <span class="context-pill">🧠 Powered by Gemini AI</span>
+    </div>
+
+    <!-- Quick Question Suggestions -->
+    <div class="ai-chat-suggestions-container">
+      <button class="chat-suggestion-pill" data-query="Is it safe to jog or exercise outside today?">🏃 Safe to jog today?</button>
+      <button class="chat-suggestion-pill" data-query="Which areas in Delhi NCR have the cleanest air right now?">🍃 Cleanest air zones?</button>
+      <button class="chat-suggestion-pill" data-query="What type of mask is recommended for PM2.5 and smog?">😷 N95 mask guide</button>
+      <button class="chat-suggestion-pill" data-query="What are the current severe AQI hotspots in Delhi?">🚨 AQI Hotspots</button>
+      <button class="chat-suggestion-pill" data-query="How does stubble burning and winter inversion affect Delhi air?">🔥 Stubble & Inversion</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="ai-chat-messages" class="ai-chat-messages" role="log" aria-live="polite">
+      <!-- Dynamic messages injected here -->
+    </div>
+
+    <!-- Input Form -->
+    <form id="ai-chat-form" class="ai-chat-form">
+      <div class="ai-input-wrapper">
+        <input 
+          type="text" 
+          id="ai-chat-input" 
+          placeholder="Ask about AQI, mask tips, workout safety..." 
+          autocomplete="off" 
+          aria-label="Ask AI chatbot a question"
+        />
+        <button type="submit" id="ai-chat-send" class="ai-send-btn" title="Send message" aria-label="Send message">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="ai-disclaimer">AirSense AI synthesizes real-time sensor & meteorological telemetry for advisory insights.</div>
+    </form>
   </div>
 
   <!-- Main JavaScript App -->

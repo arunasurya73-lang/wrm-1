@@ -1,6 +1,6 @@
 // Station Aggregation & Real-Time Telemetry Service
 import cache from './cacheService.js';
-import { STATIONS } from '../../assets/js/stationData.js';
+import { STATIONS } from '../../public/assets/js/stationData.js';
 
 const CACHE_KEY = 'delhi_stations_telemetry';
 const CACHE_TTL_SECONDS = 300;

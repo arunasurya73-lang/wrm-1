@@ -9,15 +9,25 @@ export class AQIGauge {
     this.targetAQI = 0;
     this.animationFrame = null;
     this.setupCanvas();
+    window.addEventListener('resize', () => {
+      this.setupCanvas();
+      this.draw();
+    });
   }
 
   setupCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+    if (!this.canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = this.canvas.getBoundingClientRect();
     this.width = rect.width || 280;
-    this.height = rect.height || 220;
+    this.height = rect.height || 200;
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
+    if (this.ctx.resetTransform) {
+      this.ctx.resetTransform();
+    } else {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     this.ctx.scale(dpr, dpr);
   }
 

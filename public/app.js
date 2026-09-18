@@ -4,6 +4,7 @@ import { MapTracker } from './assets/js/mapTracker.js';
 import { ForecastCharts } from './assets/js/charts.js';
 import { fetchLiveWeather, mapWeatherToVisualState, getWeatherStateMetadata, fetchAtmosphericProfile, computeStubblePlumeForecast, fetchLiveStationTelemetry } from './assets/js/weatherService.js';
 import { apiClient } from './assets/js/apiClient.js';
+import { airSenseChat } from './chat.js';
 
 class AirSenseApp {
   constructor() {
@@ -170,8 +171,7 @@ class AirSenseApp {
 
     const groups = [
       { label: '📍 Delhi NCR (20 Zones)', region: 'Delhi NCR' },
-      { label: '🇮🇳 India Metros', region: 'India' },
-      { label: '🌍 Global World Cities', region: 'Global' }
+      { label: '🇮🇳 India Metros', region: 'India' }
     ];
 
     groups.forEach(g => {
@@ -353,14 +353,92 @@ class AirSenseApp {
       });
     }
 
+    // -------------------------------------------------------------
+    // Module Quick Toggle Buttons (Live Sensors, 72h Forecast, Fire Tracker)
+    // -------------------------------------------------------------
+    const btnLiveSensors = document.getElementById('btn-live-sensors');
+    const btn72hForecast = document.getElementById('btn-72h-forecast');
+    const btnFireTracker = document.getElementById('btn-fire-tracker');
+    const allModuleBtns = [btnLiveSensors, btn72hForecast, btnFireTracker].filter(Boolean);
+
+    const setActiveModuleBtn = (activeBtn) => {
+      allModuleBtns.forEach(btn => {
+        if (btn === activeBtn) {
+          btn.classList.toggle('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    };
+
+    const highlightSection = (el) => {
+      if (!el) return;
+      el.classList.remove('panel-highlight-pulse');
+      void el.offsetWidth; // Trigger DOM reflow to restart animation
+      el.classList.add('panel-highlight-pulse');
+      setTimeout(() => el.classList.remove('panel-highlight-pulse'), 2500);
+    };
+
+    if (btnLiveSensors) {
+      btnLiveSensors.addEventListener('click', () => {
+        setActiveModuleBtn(btnLiveSensors);
+        const heroSection = document.getElementById('hero-aqi-section');
+        if (heroSection) {
+          heroSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          highlightSection(heroSection);
+        }
+        this.showToast('Live Telemetry & Sensors', 'Real-time telemetry & active sensor stream focused', 'info');
+      });
+    }
+
+    if (btn72hForecast) {
+      btn72hForecast.addEventListener('click', () => {
+        setActiveModuleBtn(btn72hForecast);
+        const scrubberSection = document.getElementById('timeline-scrubber') || document.getElementById('inversion-panel-section');
+        if (scrubberSection) {
+          scrubberSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          highlightSection(scrubberSection);
+          const inversionPanel = document.getElementById('inversion-panel-section');
+          if (inversionPanel) highlightSection(inversionPanel);
+        }
+        this.toggleForecastCharts(true);
+        this.showToast('72-Hour Atmospheric Forecast', '72-Hour forecast charts & simulation timeline active', 'info');
+      });
+    }
+
+    if (btnFireTracker) {
+      btnFireTracker.addEventListener('click', () => {
+        setActiveModuleBtn(btnFireTracker);
+        const mapSection = document.getElementById('map-section') || document.getElementById('stubble-banner');
+        if (mapSection) {
+          mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          highlightSection(mapSection);
+          const stubbleBanner = document.getElementById('stubble-banner');
+          if (stubbleBanner) highlightSection(stubbleBanner);
+        }
+        if (this.map && typeof this.map.focusFireHotspots === 'function') {
+          this.map.focusFireHotspots();
+        }
+        this.showToast('Fire & Plume Tracker', 'NASA satellite fire hotspots & smoke corridor focused', 'info');
+      });
+    }
+
     // 72-Hour Atmospheric Forecast Scrubber & Simulation
     const timeSlider = document.getElementById('time-slider');
     const scrubberPlayBtn = document.getElementById('scrubber-play-btn');
     const scrubberResetBtn = document.getElementById('scrubber-reset-btn');
+    const scrubberExpandBtn = document.getElementById('scrubber-expand-btn');
+
+    if (scrubberExpandBtn) {
+      scrubberExpandBtn.addEventListener('click', () => {
+        this.toggleForecastCharts();
+      });
+    }
 
     if (timeSlider) {
       timeSlider.addEventListener('input', (e) => {
         this.stopScrubberPlayback();
+        this.toggleForecastCharts(true);
         const offsetHour = parseInt(e.target.value, 10);
         this.simulate72HourOutlook(offsetHour);
       });
@@ -368,6 +446,7 @@ class AirSenseApp {
 
     if (scrubberPlayBtn) {
       scrubberPlayBtn.addEventListener('click', () => {
+        this.toggleForecastCharts(true);
         this.toggleScrubberPlayback();
       });
     }
@@ -382,6 +461,35 @@ class AirSenseApp {
     }
   }
 
+  toggleForecastCharts(forceState = null) {
+    const drawer = document.getElementById('scrubber-charts-drawer');
+    const btn = document.getElementById('scrubber-expand-btn');
+    const txt = document.getElementById('toggle-charts-text');
+    const chevron = document.getElementById('scrubber-chevron');
+    if (!drawer) return;
+
+    const isCurrentlyOpen = drawer.style.display !== 'none';
+    const shouldOpen = forceState !== null ? forceState : !isCurrentlyOpen;
+
+    if (shouldOpen) {
+      drawer.style.display = 'block';
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+      if (txt) txt.textContent = 'Hide Charts';
+      if (chevron) chevron.textContent = '▲';
+
+      // Refresh Chart.js canvases to ensure proper layout sizing inside newly visible track
+      const station = this.stations.find(s => s.id === this.currentStationId);
+      if (this.charts && station) {
+        this.charts.updateCharts(station, this.currentAtmosphericProfile);
+      }
+    } else {
+      drawer.style.display = 'none';
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      if (txt) txt.textContent = 'View 3-Chart Outlook';
+      if (chevron) chevron.textContent = '▼';
+    }
+  }
+
   populateCompareSelectors() {
     const s1 = document.getElementById('compare-station-1');
     const s2 = document.getElementById('compare-station-2');
@@ -391,8 +499,7 @@ class AirSenseApp {
       select.innerHTML = '';
       const groups = [
         { label: '📍 Delhi NCR', region: 'Delhi NCR' },
-        { label: '🇮🇳 India Metros', region: 'India' },
-        { label: '🌍 Global World Cities', region: 'Global' }
+        { label: '🇮🇳 India Metros', region: 'India' }
       ];
 
       groups.forEach(g => {
@@ -544,7 +651,7 @@ class AirSenseApp {
         pm10: simulatedPm10,
         stubbleShare: simulatedStubble
       };
-      this.renderStationData(station.id, simulatedStation);
+      this.renderStationData(station.id, simulatedStation, false, { isScrubbing: true, offsetHours: offsetHours });
     }
   }
 
@@ -684,7 +791,7 @@ class AirSenseApp {
     await this.updateWeatherReactiveTheme();
   }
 
-  async renderStationData(stationId, overrideData = null, bypassCache = false) {
+  async renderStationData(stationId, overrideData = null, bypassCache = false, options = {}) {
     let station = overrideData || this.stations.find(s => s.id === stationId);
     if (!station) return;
 
@@ -738,6 +845,16 @@ class AirSenseApp {
     if (this.gauge) {
       this.gauge.setTargetValue(station.aqi);
     }
+
+    // Pass Live Station Context to AI Chatbot
+    airSenseChat.setContext({
+      stationId: station.id,
+      name: station.name,
+      aqi: station.aqi,
+      pm25: station.pm25,
+      pm10: station.pm10,
+      dominant: station.dominantPollutant || 'PM2.5'
+    });
 
     // Current AQI Display
     const aqiValEl = document.getElementById('current-aqi-val');
@@ -865,7 +982,7 @@ class AirSenseApp {
 
     // Charts
     if (this.charts) {
-      this.charts.updateCharts(station, profileData);
+      this.charts.updateCharts(station, profileData, options);
     }
   }
 

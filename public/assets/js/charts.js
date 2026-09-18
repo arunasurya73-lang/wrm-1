@@ -16,11 +16,17 @@ export class ForecastCharts {
     return document.getElementById(id);
   }
 
-  updateCharts(station, profileData = null) {
+  updateCharts(station, profileData = null, options = {}) {
     if (!station) return;
     if (!window.Chart) {
       console.warn('Chart.js not yet loaded, retrying in 250ms...');
-      setTimeout(() => this.updateCharts(station, profileData), 250);
+      setTimeout(() => this.updateCharts(station, profileData, options), 250);
+      return;
+    }
+
+    // During active scrubber playback/scrubbing, update radar fingerprint in-place and keep 72h timelines rock-solid
+    if (options.isScrubbing) {
+      this.renderRadarChart(station);
       return;
     }
 
@@ -32,6 +38,9 @@ export class ForecastCharts {
     }
   }
 
+  // -------------------------------------------------------------
+  // 72-Hour Multi-Pollutant & Smoke Dispersion Outlook
+  // -------------------------------------------------------------
   render72HourMultiPollutantChart(station, profileData = null) {
     const canvas = this.getCanvas(this.canvas72hMultiId);
     if (!canvas) return;
@@ -41,15 +50,24 @@ export class ForecastCharts {
     const textColor = isDark ? '#94A3B8' : '#64748B';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
+    // In-place update to prevent remounting, glitching and flickering
     if (this.chart72hMulti) {
-      this.chart72hMulti.destroy();
-    }
+      this.chart72hMulti.data.labels = trendData.labels;
+      this.chart72hMulti.data.datasets[0].data = trendData.pm25;
+      this.chart72hMulti.data.datasets[1].data = trendData.pm10;
+      this.chart72hMulti.data.datasets[2].data = trendData.stubble;
+      
+      // Update theme colors in-place
+      this.chart72hMulti.options.plugins.legend.labels.color = textColor;
+      this.chart72hMulti.options.scales.x.grid.color = gridColor;
+      this.chart72hMulti.options.scales.x.ticks.color = textColor;
+      this.chart72hMulti.options.scales.y.grid.color = gridColor;
+      this.chart72hMulti.options.scales.y.ticks.color = textColor;
+      this.chart72hMulti.options.scales.y.title.color = textColor;
 
-    // Dynamic Gradient Fill
-    const gradientAqi = ctx.createLinearGradient(0, 0, 0, 300);
-    gradientAqi.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
-    gradientAqi.addColorStop(0.5, 'rgba(249, 115, 22, 0.18)');
-    gradientAqi.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+      this.chart72hMulti.update('none');
+      return;
+    }
 
     const datasets = [
       {
@@ -98,6 +116,9 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 0
+        },
         interaction: {
           mode: 'index',
           intersect: false
@@ -176,10 +197,6 @@ export class ForecastCharts {
     const textColor = isDark ? '#94A3B8' : '#64748B';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
-    if (this.chart7d) {
-      this.chart7d.destroy();
-    }
-
     const count = 72;
     const labels = [];
     const meanAqi = [];
@@ -220,6 +237,26 @@ export class ForecastCharts {
 
       upperConfidence.push(Math.min(500, baseProjected + uncertaintyDelta));
       lowerConfidence.push(Math.max(20, baseProjected - Math.round(uncertaintyDelta * 0.85)));
+    }
+
+    // In-place update to prevent remounting, glitching and flickering
+    if (this.chart7d) {
+      this.chart7d.data.labels = labels;
+      this.chart7d.data.datasets[0].data = upperConfidence;
+      this.chart7d.data.datasets[1].data = lowerConfidence;
+      this.chart7d.data.datasets[2].data = meanAqi;
+      this.chart7d.data.datasets[3].data = invData;
+
+      // Update theme colors in-place
+      this.chart7d.options.plugins.legend.labels.color = textColor;
+      this.chart7d.options.scales.x.grid.color = gridColor;
+      this.chart7d.options.scales.x.ticks.color = textColor;
+      this.chart7d.options.scales.y.grid.color = gridColor;
+      this.chart7d.options.scales.y.ticks.color = textColor;
+      this.chart7d.options.scales.y.title.color = textColor;
+
+      this.chart7d.update('none');
+      return;
     }
 
     this.chart7d = new Chart(ctx, {
@@ -272,6 +309,9 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 0
+        },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
@@ -339,10 +379,6 @@ export class ForecastCharts {
     const textColor = isDark ? '#94A3B8' : '#64748B';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
-    if (this.chartPbl) {
-      this.chartPbl.destroy();
-    }
-
     const count = Math.min(72, profileData.labels.length);
     const pblData = profileData.pblHeights.slice(0, count);
     const invData = profileData.inversionIndices.slice(0, count);
@@ -351,6 +387,25 @@ export class ForecastCharts {
     const pblGradient = ctx.createLinearGradient(0, 0, 0, 220);
     pblGradient.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
     pblGradient.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
+
+    // In-place update to prevent remounting, glitching and flickering
+    if (this.chartPbl) {
+      this.chartPbl.data.labels = profileData.labels.slice(0, count);
+      this.chartPbl.data.datasets[0].data = pblData;
+      this.chartPbl.data.datasets[1].data = thresholdData;
+      this.chartPbl.data.datasets[2].data = invData;
+
+      // Update theme colors in-place
+      this.chartPbl.options.plugins.legend.labels.color = textColor;
+      this.chartPbl.options.scales.x.grid.color = gridColor;
+      this.chartPbl.options.scales.x.ticks.color = textColor;
+      this.chartPbl.options.scales.y.grid.color = gridColor;
+      this.chartPbl.options.scales.y.ticks.color = textColor;
+      this.chartPbl.options.scales.y.title.color = textColor;
+
+      this.chartPbl.update('none');
+      return;
+    }
 
     this.chartPbl = new Chart(ctx, {
       type: 'line',
@@ -392,6 +447,9 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 0
+        },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
@@ -441,6 +499,9 @@ export class ForecastCharts {
     });
   }
 
+  // -------------------------------------------------------------
+  // Pollutant Severity Fingerprint Radar Chart
+  // -------------------------------------------------------------
   renderRadarChart(station) {
     const canvas = this.getCanvas(this.canvasRadarId);
     if (!canvas) return;
@@ -449,10 +510,6 @@ export class ForecastCharts {
     const textColor = isDark ? '#94A3B8' : '#64748B';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
-    if (this.chartRadar) {
-      this.chartRadar.destroy();
-    }
-
     // Normalized against safe standard baseline (100 = safety limit)
     const normPm25 = Math.min(500, Math.round((station.pm25 / 60) * 100));
     const normPm10 = Math.min(500, Math.round((station.pm10 / 100) * 100));
@@ -460,6 +517,18 @@ export class ForecastCharts {
     const normSo2 = Math.min(500, Math.round((station.so2 / 80) * 100));
     const normCo = Math.min(500, Math.round((station.co / 2.0) * 100));
     const normO3 = Math.min(500, Math.round((station.o3 / 100) * 100));
+
+    // In-place update to prevent remounting, glitching and flickering
+    if (this.chartRadar) {
+      this.chartRadar.data.datasets[0].label = `${station.name} Severity Ratio`;
+      this.chartRadar.data.datasets[0].data = [normPm25, normPm10, normNo2, normSo2, normCo, normO3];
+      this.chartRadar.options.plugins.legend.labels.color = textColor;
+      this.chartRadar.options.scales.r.pointLabels.color = textColor;
+      this.chartRadar.options.scales.r.grid.color = gridColor;
+      this.chartRadar.options.scales.r.angleLines.color = gridColor;
+      this.chartRadar.update('none');
+      return;
+    }
 
     this.chartRadar = new Chart(ctx, {
       type: 'radar',
@@ -489,6 +558,9 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 0
+        },
         plugins: {
           legend: {
             position: 'top',

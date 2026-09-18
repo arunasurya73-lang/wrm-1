@@ -1,6 +1,6 @@
 // NASA FIRMS Satellite Fire Detection Service
 import cache from './cacheService.js';
-import { STUBBLE_FIRE_HOTSPOTS } from '../../assets/js/stationData.js';
+import { STUBBLE_FIRE_HOTSPOTS } from '../../public/assets/js/stationData.js';
 
 const CACHE_KEY = 'nasa_firms_hotspots';
 const CACHE_TTL_SECONDS = 600; // 10 Minutes

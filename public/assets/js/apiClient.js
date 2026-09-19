@@ -4,11 +4,9 @@
 
 class APIClient {
   constructor() {
-    // ⚠️ IMPORTANT: Replace this URL with your actual Render.com live URL
+    // Use current origin if running via HTTP/HTTPS, fallback to Render backend if loaded via file://
     const RENDER_BACKEND_URL = 'https://wrm-1-1.onrender.com'; 
-    
-    // Use localhost for local development, otherwise use the Render backend
-    this.baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    this.baseUrl = (typeof window !== 'undefined' && window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:'))
       ? window.location.origin 
       : RENDER_BACKEND_URL;
       

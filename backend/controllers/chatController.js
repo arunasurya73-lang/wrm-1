@@ -5,6 +5,16 @@ import { getAllStationsTelemetry } from '../services/stationService.js';
  * Parses JSON body from request stream
  */
 function parseRequestBody(req) {
+  if (req.body) {
+    if (typeof req.body === 'object') return Promise.resolve(req.body);
+    if (typeof req.body === 'string') {
+      try {
+        return Promise.resolve(JSON.parse(req.body));
+      } catch (e) {
+        return Promise.resolve({});
+      }
+    }
+  }
   return new Promise((resolve) => {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });

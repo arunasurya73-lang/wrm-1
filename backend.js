@@ -128,8 +128,8 @@ async function handler(req, res) {
 const server = http.createServer(handler);
 
 if (!process.env.VERCEL && !process.env.NOW_REGION) {
-  server.listen(PORT, () => {
-    console.log(`🌿 AirSense Delhi Production Backend is running at: http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌿 AirSense Delhi Production Backend is running at: http://0.0.0.0:${PORT}`);
     console.log(`📡 Endpoints available:`);
     console.log(`   - GET  /api/health`);
     console.log(`   - GET  /api/stations`);

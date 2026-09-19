@@ -108,6 +108,13 @@ class APIClient {
   async getHotspots() {
     return await this.request('/api/hotspots');
   }
+
+  async sendChatMessage(message, context = {}) {
+    return await this.request('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, context })
+    }, 1, 8000);
+  }
 }
 
 export const apiClient = new APIClient();

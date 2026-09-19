@@ -474,10 +474,32 @@ html.light.weather-night .cloud-mass {
   font-size: 0.95rem;
 }
 
+/* ==========================================================================
+   Interactive Anti-Gravity Physics Canvas Background
+   ========================================================================== */
+.anti-gravity-canvas-wrap {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+#anti-gravity-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 /* App Container */
 .app-container {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-width: 1440px;
   margin: 0 auto;
   padding: 0 1.5rem 3rem 1.5rem;

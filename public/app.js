@@ -3,6 +3,7 @@ import { ROUTE_HUBS } from './assets/js/routePlanner.js';
 import { AQIGauge } from './assets/js/aqiGauge.js';
 import { MapTracker } from './assets/js/mapTracker.js';
 import { ForecastCharts } from './assets/js/charts.js';
+import { AntiGravityBackground } from './assets/js/antiGravityBackground.js';
 import { fetchLiveWeather, mapWeatherToVisualState, getWeatherStateMetadata, fetchAtmosphericProfile, computeStubblePlumeForecast, fetchLiveStationTelemetry } from './assets/js/weatherService.js';
 import { apiClient } from './assets/js/apiClient.js';
 import { airSenseChat } from './chat.js';
@@ -19,6 +20,7 @@ class AirSenseApp {
     this.gauge = null;
     this.map = null;
     this.routePlanner = null;
+    this.antiGravityBg = null;
     this.charts = null;
     this.currentAtmosphericProfile = null;
     
@@ -35,6 +37,7 @@ class AirSenseApp {
   }
 
   async init() {
+    this.antiGravityBg = new AntiGravityBackground();
     this.setupTheme();
     this.setupRealtimeLiveClock();
     this.setupBackendTelemetryStatus();

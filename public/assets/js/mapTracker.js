@@ -1,10 +1,12 @@
 import { STATIONS, STUBBLE_FIRE_HOTSPOTS, getAQIInfo } from './stationData.js';
+import { CleanAirRoutePlanner, ROUTE_HUBS } from './routePlanner.js';
 
 export class MapTracker {
   constructor(mapContainerId, onStationSelect) {
     this.containerId = mapContainerId;
     this.onStationSelect = onStationSelect;
     this.map = null;
+    this.routePlanner = null;
     this.stationMarkers = [];
     this.smokeLayer = null;
     this.hotspotLayer = null;
@@ -17,6 +19,7 @@ export class MapTracker {
     this.showHotspots = true;
     this.showWindFlow = true;
     this.showHeatHalos = true;
+    this.showRoutePlanner = true;
     
     // Wind particle animation state
     this.windParticles = [];
@@ -80,6 +83,9 @@ export class MapTracker {
       this.satelliteLabels.addTo(this.map);
     }
 
+    // Initialize Route Planner instance on map
+    this.routePlanner = new CleanAirRoutePlanner(this.map);
+
     this.initCustomLayerControls();
     this.renderStations();
     this.renderAQIHeatHalos();
@@ -115,6 +121,9 @@ export class MapTracker {
         </button>
       </div>
       <div class="map-toggle-group">
+        <button id="map-layer-route" class="map-mode-btn ${this.showRoutePlanner ? 'active' : ''}" title="Toggle Clean-Air Route Planner">
+          <span>🛣️</span> Route Map
+        </button>
         <button id="map-layer-wind" class="map-mode-btn ${this.showWindFlow ? 'active' : ''}" title="Live Animated Wind Vectors">
           <span>💨</span> Wind
         </button>
@@ -139,6 +148,19 @@ export class MapTracker {
       // Event Listeners for Layer Toggles
       document.getElementById('map-mode-satellite')?.addEventListener('click', () => this.switchBaseMap('satellite'));
       document.getElementById('map-mode-dark')?.addEventListener('click', () => this.switchBaseMap('dark'));
+      document.getElementById('map-layer-route')?.addEventListener('click', (e) => {
+        this.showRoutePlanner = !this.showRoutePlanner;
+        e.currentTarget.classList.toggle('active', this.showRoutePlanner);
+        const panel = document.getElementById('route-planner-panel');
+        if (panel) {
+          panel.style.display = this.showRoutePlanner ? 'block' : 'none';
+        }
+        if (!this.showRoutePlanner && this.routePlanner) {
+          this.routePlanner.clearMapRoutes();
+        } else if (this.showRoutePlanner && this.routePlanner && this.routePlanner.currentRoutes.length > 0) {
+          this.routePlanner.renderRoutesOnMap(this.routePlanner.currentRoutes, this.routePlanner.selectedRouteIndex);
+        }
+      });
       document.getElementById('map-layer-wind')?.addEventListener('click', (e) => {
         this.showWindFlow = !this.showWindFlow;
         e.currentTarget.classList.toggle('active', this.showWindFlow);
@@ -317,7 +339,7 @@ export class MapTracker {
     if (this.smokeLayer) this.smokeLayer.remove();
     this.smokeLayer = L.layerGroup();
 
-    // 1. Broad Outer Atmospheric Smoke Haze (Indo-Gangetic Basin Transport Corridor)
+    // 1. Broad Outer Atmospheric Smoke Haze (Light Gray Haze)
     const outerPlume = L.polygon([
       [31.45, 74.60],
       [31.60, 76.70],
@@ -329,13 +351,13 @@ export class MapTracker {
       [30.60, 74.50]
     ], {
       stroke: false,
-      fillColor: '#b45309',
-      fillOpacity: 0.24,
+      fillColor: '#94a3b8',
+      fillOpacity: 0.35,
       className: 'realistic-smoke-outer',
       interactive: false
     });
 
-    // 2. High-Density Core Biomass Smoke Stream
+    // 2. High-Density Core Biomass Smoke Stream (Light/Medium Gray)
     const corePlume = L.polygon([
       [31.00, 75.40],
       [30.85, 76.85],
@@ -346,20 +368,20 @@ export class MapTracker {
       [30.00, 75.60]
     ], {
       stroke: true,
-      color: 'rgba(239, 68, 68, 0.4)',
+      color: 'rgba(148, 163, 184, 0.55)',
       weight: 1,
-      dashArray: '6, 12',
-      fillColor: '#991b1b',
-      fillOpacity: 0.32,
+      dashArray: '6, 10',
+      fillColor: '#64748b',
+      fillOpacity: 0.38,
       className: 'realistic-smoke-core',
       interactive: false
     });
 
     // 3. Dense Smoke Accumulation Centroids (Gaussian-Diffused Hotspot Zones)
     const smokeCentroids = [
-      { center: [30.70, 75.90], radius: 48000, opacity: 0.28, color: '#7c2d12' }, // Punjab Agricultural Fire Belt
-      { center: [29.85, 76.85], radius: 40000, opacity: 0.25, color: '#9a3412' }, // Kurukshetra / Karnal Corridor
-      { center: [28.75, 77.18], radius: 32000, opacity: 0.30, color: '#b91c1c' }  // Delhi NCR Fumigation Basin
+      { center: [30.70, 75.90], radius: 48000, opacity: 0.32, color: '#64748b' }, // Punjab Agricultural Fire Belt
+      { center: [29.85, 76.85], radius: 40000, opacity: 0.28, color: '#94a3b8' }, // Kurukshetra / Karnal Corridor
+      { center: [28.75, 77.18], radius: 32000, opacity: 0.35, color: '#475569' }  // Delhi NCR Fumigation Basin
     ];
 
     smokeCentroids.forEach(c => {
@@ -532,13 +554,13 @@ export class MapTracker {
           puff.age = 0;
         }
 
-        // Draw soft radial smoke gradient puff
+        // Draw soft radial light-gray smoke gradient puff
         if (currentOpacity > 0.02 && puff.x >= -60 && puff.x <= size.x + 60 && puff.y >= -60 && puff.y <= size.y + 60) {
           const grad = ctx.createRadialGradient(puff.x, puff.y, 0, puff.x, puff.y, currentRadius);
-          grad.addColorStop(0, `rgba(180, 83, 9, ${currentOpacity * 0.7})`);
-          grad.addColorStop(0.45, `rgba(154, 52, 18, ${currentOpacity * 0.45})`);
-          grad.addColorStop(0.8, `rgba(124, 45, 18, ${currentOpacity * 0.18})`);
-          grad.addColorStop(1, 'rgba(124, 45, 18, 0)');
+          grad.addColorStop(0, `rgba(203, 213, 225, ${currentOpacity * 0.75})`);
+          grad.addColorStop(0.45, `rgba(148, 163, 184, ${currentOpacity * 0.5})`);
+          grad.addColorStop(0.8, `rgba(100, 116, 139, ${currentOpacity * 0.2})`);
+          grad.addColorStop(1, 'rgba(100, 116, 139, 0)');
 
           ctx.fillStyle = grad;
           ctx.beginPath();
@@ -562,8 +584,8 @@ export class MapTracker {
           p.age = 0;
         }
 
-        ctx.strokeStyle = `rgba(249, 115, 22, ${p.opacity * 0.8})`;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(56, 189, 248, ${p.opacity * 0.9})`;
+        ctx.lineWidth = 1.6;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);

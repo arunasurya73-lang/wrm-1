@@ -239,13 +239,14 @@ export class ForecastCharts {
       lowerConfidence.push(Math.max(20, baseProjected - Math.round(uncertaintyDelta * 0.85)));
     }
 
+    const confidenceRanges = lowerConfidence.map((low, i) => [low, upperConfidence[i]]);
+
     // In-place update to prevent remounting, glitching and flickering
     if (this.chart7d) {
       this.chart7d.data.labels = labels;
-      this.chart7d.data.datasets[0].data = upperConfidence;
-      this.chart7d.data.datasets[1].data = lowerConfidence;
-      this.chart7d.data.datasets[2].data = meanAqi;
-      this.chart7d.data.datasets[3].data = invData;
+      this.chart7d.data.datasets[0].data = confidenceRanges;
+      this.chart7d.data.datasets[1].data = meanAqi;
+      this.chart7d.data.datasets[2].data = invData;
 
       // Update theme colors in-place
       this.chart7d.options.plugins.legend.labels.color = textColor;
@@ -260,49 +261,49 @@ export class ForecastCharts {
     }
 
     this.chart7d = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: labels,
         datasets: [
           {
-            label: 'Upper Bound (Inversion Uncertainty)',
-            data: upperConfidence,
-            borderColor: 'rgba(249, 115, 22, 0.35)',
-            borderWidth: 1,
-            borderDash: [3, 3],
-            fill: '+1', // Fill down to lower bound
-            backgroundColor: 'rgba(249, 115, 22, 0.12)',
-            pointRadius: 0
+            type: 'bar',
+            label: 'Confidence Envelope (Min - Max)',
+            data: confidenceRanges,
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.88)',
+            borderColor: '#CCCCCC',
+            borderWidth: 1.2,
+            borderRadius: 2,
+            grouped: false,
+            barPercentage: 0.85,
+            categoryPercentage: 0.85,
+            order: 2
           },
           {
-            label: 'Lower Bound',
-            data: lowerConfidence,
-            borderColor: 'rgba(249, 115, 22, 0.35)',
-            borderWidth: 1,
-            borderDash: [3, 3],
-            fill: false,
-            pointRadius: 0
-          },
-          {
+            type: 'bar',
             label: 'Projected AQI Mean',
             data: meanAqi,
-            borderColor: '#F97316',
-            backgroundColor: 'transparent',
-            borderWidth: 2.6,
-            tension: 0.3,
-            pointRadius: (ctx) => (ctx.dataIndex % 6 === 0 ? 3 : 0),
-            pointBackgroundColor: '#F97316'
+            backgroundColor: '#FF9933', // Saffron
+            borderColor: '#FF9933',
+            borderWidth: 1,
+            borderRadius: 2,
+            grouped: false,
+            barPercentage: 0.52,
+            categoryPercentage: 0.85,
+            order: 1
           },
           {
+            type: 'line',
             label: 'Inversion ΔT (°C)',
             data: invData,
-            borderColor: '#06B6D4',
+            borderColor: '#138808', // Green
             backgroundColor: 'transparent',
-            borderWidth: 1.5,
+            borderWidth: 2,
             borderDash: [4, 4],
-            tension: 0.3,
+            tension: 0.35,
             yAxisID: 'y1',
-            pointRadius: 0
+            pointRadius: (ctx) => (ctx.dataIndex % 6 === 0 ? 3 : 0),
+            pointBackgroundColor: '#138808',
+            order: 0
           }
         ]
       },
@@ -316,7 +317,7 @@ export class ForecastCharts {
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 6 }
+            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 8, boxHeight: 8 }
           },
           tooltip: {
             backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
@@ -327,18 +328,20 @@ export class ForecastCharts {
             padding: 10,
             callbacks: {
               label: (context) => {
-                if (context.datasetIndex === 2) {
-                  const val = context.parsed.y;
-                  return `Projected AQI: ${val} (${getAQIInfo(val).label})`;
-                }
-                if (context.datasetIndex === 3) {
-                  return `Inversion ΔT: ${context.parsed.y > 0 ? '+' : ''}${context.parsed.y} °C`;
-                }
                 if (context.datasetIndex === 0) {
-                  return `Upper Limit: ${context.parsed.y} AQI`;
+                  const raw = context.raw;
+                  if (Array.isArray(raw)) {
+                    return `Confidence Envelope: ${raw[0]} – ${raw[1]} AQI`;
+                  }
+                  return `Confidence Envelope: ${context.formattedValue} AQI`;
                 }
                 if (context.datasetIndex === 1) {
-                  return `Lower Limit: ${context.parsed.y} AQI`;
+                  const val = context.parsed.y;
+                  return `Projected AQI Mean: ${val} (${getAQIInfo(val).label})`;
+                }
+                if (context.datasetIndex === 2) {
+                  const val = context.parsed.y;
+                  return `Inversion ΔT: ${val > 0 ? '+' : ''}${val} °C`;
                 }
                 return `${context.dataset.label}: ${context.parsed.y}`;
               }
@@ -351,6 +354,7 @@ export class ForecastCharts {
             ticks: { color: textColor, maxTicksLimit: 12, maxRotation: 0, font: { family: 'Inter', size: 10.5 } }
           },
           y: {
+            position: 'left',
             grid: { color: gridColor },
             ticks: { color: textColor, font: { family: 'Inter', size: 10.5 } },
             title: { display: true, text: 'Coupled 72h AQI Level', color: textColor, font: { size: 10.5 } },
@@ -360,8 +364,8 @@ export class ForecastCharts {
           y1: {
             position: 'right',
             grid: { drawOnChartArea: false },
-            ticks: { color: '#06B6D4', callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { size: 10 } },
-            title: { display: true, text: '850hPa - 2m ΔT', color: '#06B6D4', font: { size: 10 } }
+            ticks: { color: '#138808', callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { size: 10 } },
+            title: { display: true, text: '850hPa - 2m ΔT', color: '#138808', font: { size: 10 } }
           }
         }
       }

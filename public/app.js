@@ -1,4 +1,5 @@
 import { STATIONS, getAQIInfo, AQI_LEVELS, STUBBLE_FIRE_HOTSPOTS } from './assets/js/stationData.js';
+import { ROUTE_HUBS } from './assets/js/routePlanner.js';
 import { AQIGauge } from './assets/js/aqiGauge.js';
 import { MapTracker } from './assets/js/mapTracker.js';
 import { ForecastCharts } from './assets/js/charts.js';
@@ -8,6 +9,7 @@ import { airSenseChat } from './chat.js';
 
 class AirSenseApp {
   constructor() {
+    window.airSenseApp = this;
     this.stations = [...STATIONS];
     this.currentStationId = 'mundka';
     this.currentRegionFilter = 'all';
@@ -16,6 +18,7 @@ class AirSenseApp {
     
     this.gauge = null;
     this.map = null;
+    this.routePlanner = null;
     this.charts = null;
     this.currentAtmosphericProfile = null;
     
@@ -33,11 +36,13 @@ class AirSenseApp {
 
   async init() {
     this.setupTheme();
+    this.setupRealtimeLiveClock();
     this.setupBackendTelemetryStatus();
     this.populateStationDropdown();
     this.initVisualComponents();
     this.attachEventListeners();
     this.attachFeatureListeners();
+    await this.initRoutePlanner();
     
     // Initial fetch from live API endpoint (with graceful fallback)
     await this.fetchLiveTelemetry();
@@ -55,6 +60,27 @@ class AirSenseApp {
         await this.renderStationData(this.currentStationId);
       }
     }, 60000);
+  }
+
+  // ==========================================
+  // Real-Time Live Clock with Seconds (IST)
+  // ==========================================
+  setupRealtimeLiveClock() {
+    const clockEl = document.getElementById('realtime-live-clock');
+    if (!clockEl) return;
+
+    const updateClock = () => {
+      const now = new Date();
+      clockEl.textContent = now.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    };
+
+    updateClock();
+    setInterval(updateClock, 1000);
   }
 
   // ==========================================
@@ -199,7 +225,122 @@ class AirSenseApp {
     this.map = new MapTracker('leaflet-map', (selectedId) => {
       this.selectStation(selectedId);
     });
+    this.routePlanner = this.map ? this.map.routePlanner : null;
     this.charts = new ForecastCharts('chart-24h', 'chart-7d', 'chart-radar');
+  }
+
+  // ==========================================
+  // Clean-Air & Safe Commute Route Planner
+  // ==========================================
+  async initRoutePlanner() {
+    const originSelect = document.getElementById('route-origin-select');
+    const destSelect = document.getElementById('route-dest-select');
+    if (!originSelect || !destSelect || !this.routePlanner) return;
+
+    originSelect.innerHTML = '';
+    destSelect.innerHTML = '';
+
+    ROUTE_HUBS.forEach((hub) => {
+      const optOrig = document.createElement('option');
+      optOrig.value = hub.id;
+      optOrig.textContent = `${hub.name} (${hub.area})`;
+      originSelect.appendChild(optOrig);
+
+      const optDest = document.createElement('option');
+      optDest.value = hub.id;
+      optDest.textContent = `${hub.name} (${hub.area})`;
+      destSelect.appendChild(optDest);
+    });
+
+    originSelect.value = 'cp';
+    destSelect.value = 'noida-sec62';
+
+    // Preset buttons
+    const presetBtns = document.querySelectorAll('.route-preset-btn');
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        presetBtns.forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const fromId = e.currentTarget.getAttribute('data-from');
+        const toId = e.currentTarget.getAttribute('data-to');
+        if (fromId && toId) {
+          originSelect.value = fromId;
+          destSelect.value = toId;
+          await this.executeRouteCalculation();
+        }
+      });
+    });
+
+    // Swap button
+    const swapBtn = document.getElementById('route-swap-btn');
+    if (swapBtn) {
+      swapBtn.addEventListener('click', () => {
+        const temp = originSelect.value;
+        originSelect.value = destSelect.value;
+        destSelect.value = temp;
+        this.executeRouteCalculation();
+      });
+    }
+
+    // Calculate Route Button
+    const calcBtn = document.getElementById('btn-calculate-route');
+    if (calcBtn) {
+      calcBtn.addEventListener('click', () => {
+        this.executeRouteCalculation();
+      });
+    }
+
+    // Clear Route Button
+    const clearBtn = document.getElementById('btn-clear-route');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (this.routePlanner) {
+          this.routePlanner.clearMapRoutes();
+          const resultsDiv = document.getElementById('route-planner-results');
+          if (resultsDiv) resultsDiv.innerHTML = '<div style="padding: 1.25rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">Select origin and destination and click "Find Clean Route" to compare air quality corridors.</div>';
+        }
+      });
+    }
+
+    // Auto-calculate initial default route on startup
+    await this.executeRouteCalculation();
+  }
+
+  async executeRouteCalculation() {
+    const originSelect = document.getElementById('route-origin-select');
+    const destSelect = document.getElementById('route-dest-select');
+    const calcBtn = document.getElementById('btn-calculate-route');
+    if (!originSelect || !destSelect || !this.routePlanner) return;
+
+    if (originSelect.value === destSelect.value) {
+      this.showToast('Invalid Route', 'Origin and destination cannot be the same transit hub.', 'error');
+      return;
+    }
+
+    if (calcBtn) {
+      calcBtn.disabled = true;
+      calcBtn.innerHTML = '<span>⏳ Calculating...</span>';
+    }
+
+    try {
+      const routes = await this.routePlanner.calculateRoutes(originSelect.value, destSelect.value);
+      this.routePlanner.renderRoutesOnMap(routes, 0);
+      this.routePlanner.updateRouteCardUI();
+      this.showToast('Route Calculated', `Analyzed ${routes.length} corridors with live PM2.5 dosage & safety checklist`, 'success');
+    } catch (err) {
+      console.error('Route calculation error:', err);
+      this.showToast('Routing Error', 'Unable to calculate routes. Please try another hub.', 'error');
+    } finally {
+      if (calcBtn) {
+        calcBtn.disabled = false;
+        calcBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+          </svg>
+          Find Clean Route
+        `;
+      }
+    }
   }
 
   // ==========================================
@@ -353,13 +494,52 @@ class AirSenseApp {
       });
     }
 
+    // Advices Button & Modal
+    const advicesBtn = document.getElementById('btn-advices');
+    const advicesModal = document.getElementById('advices-modal');
+    const closeAdvicesBtn = document.getElementById('close-advices-modal');
+    const modalAdviceTabBtns = document.querySelectorAll('.modal-advice-tab-btn');
+    const modalAdviceCards = document.querySelectorAll('#modal-advices-grid .advice-card');
+
+    if (advicesBtn && advicesModal) {
+      advicesBtn.addEventListener('click', () => {
+        advicesModal.style.display = 'flex';
+      });
+    }
+
+    if (closeAdvicesBtn && advicesModal) {
+      closeAdvicesBtn.addEventListener('click', () => {
+        advicesModal.style.display = 'none';
+      });
+    }
+
+    if (modalAdviceTabBtns.length > 0) {
+      modalAdviceTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter || 'all';
+          modalAdviceTabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          modalAdviceCards.forEach(card => {
+            const category = card.dataset.category;
+            if (filter === 'all' || category === filter) {
+              card.style.display = 'flex';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
+      });
+    }
+
     // -------------------------------------------------------------
     // Module Quick Toggle Buttons (Live Sensors, 72h Forecast, Fire Tracker)
     // -------------------------------------------------------------
     const btnLiveSensors = document.getElementById('btn-live-sensors');
     const btn72hForecast = document.getElementById('btn-72h-forecast');
     const btnFireTracker = document.getElementById('btn-fire-tracker');
-    const allModuleBtns = [btnLiveSensors, btn72hForecast, btnFireTracker].filter(Boolean);
+    const btnAwarenessCampaign = document.getElementById('btn-awareness-campaign');
+    const allModuleBtns = [btnLiveSensors, btn72hForecast, btnFireTracker, btnAwarenessCampaign].filter(Boolean);
 
     const setActiveModuleBtn = (activeBtn) => {
       allModuleBtns.forEach(btn => {
@@ -419,7 +599,68 @@ class AirSenseApp {
         if (this.map && typeof this.map.focusFireHotspots === 'function') {
           this.map.focusFireHotspots();
         }
-        this.showToast('Fire & Plume Tracker', 'NASA satellite fire hotspots & smoke corridor focused', 'info');
+        this.showToast('Stubble Burning & Plume Tracker', 'NASA satellite fire hotspots & smoke corridor focused', 'info');
+      });
+    }
+
+    if (btnAwarenessCampaign) {
+      btnAwarenessCampaign.addEventListener('click', () => {
+        setActiveModuleBtn(btnAwarenessCampaign);
+        const awarenessSection = document.getElementById('awareness-campaign-section');
+        if (awarenessSection) {
+          awarenessSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          highlightSection(awarenessSection);
+        }
+        this.showToast('Awareness & Mitigation Hub', 'Delhi NCR CAQM GRAP directives & citizen action hub focused', 'info');
+      });
+    }
+
+    // Campaign Lifecycle Filter Tabs Interaction
+    const campaignTabBtns = document.querySelectorAll('.campaign-filter-tabs .campaign-tab-btn');
+    const campaignCards = document.querySelectorAll('#campaign-cards-grid .campaign-card');
+
+    if (campaignTabBtns.length > 0) {
+      campaignTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter || 'all';
+          
+          campaignTabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          campaignCards.forEach(card => {
+            const cardStatus = card.dataset.status;
+            if (filter === 'all' || cardStatus === filter) {
+              card.classList.remove('campaign-hidden');
+            } else {
+              card.classList.add('campaign-hidden');
+            }
+          });
+        });
+      });
+    }
+
+    // Citizen Clean Air Pledge Interaction
+    const btnTakePledge = document.getElementById('btn-take-pledge');
+    const pledgeCounterVal = document.getElementById('pledge-counter-val');
+    const pledgeBtnText = document.getElementById('pledge-btn-text');
+    let hasPledged = false;
+    let pledgeCount = 34820;
+
+    if (btnTakePledge) {
+      btnTakePledge.addEventListener('click', () => {
+        hasPledged = !hasPledged;
+        if (hasPledged) {
+          pledgeCount++;
+          btnTakePledge.classList.add('pledged');
+          if (pledgeBtnText) pledgeBtnText.textContent = '✅ Pledged for Clean Air!';
+          if (pledgeCounterVal) pledgeCounterVal.textContent = pledgeCount.toLocaleString('en-IN');
+          this.showToast('Thank You for Pledging! 🌟', 'Your commitment to Delhi clean air action has been recorded.', 'success');
+        } else {
+          pledgeCount--;
+          btnTakePledge.classList.remove('pledged');
+          if (pledgeBtnText) pledgeBtnText.textContent = 'I Pledge for Clean Air Delhi';
+          if (pledgeCounterVal) pledgeCounterVal.textContent = pledgeCount.toLocaleString('en-IN');
+        }
       });
     }
 

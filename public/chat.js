@@ -15,12 +15,23 @@ class AirSenseChatbot {
     this.messages = [];
     this.currentContext = null;
     
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => this.init());
+      } else {
+        this.init();
+      }
+    }
+  }
+
+  init() {
     this.initElements();
     this.bindEvents();
     this.renderInitialGreeting();
   }
 
   initElements() {
+    if (typeof document === 'undefined') return;
     this.launcherBtn = document.getElementById('ai-chat-launcher');
     this.chatModal = document.getElementById('ai-chat-box');
     this.closeBtn = document.getElementById('ai-chat-close');

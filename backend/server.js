@@ -86,8 +86,11 @@ async function handler(req, res) {
     return await handleChat(req, res);
   }
 
-  // Static File Serving from public/
-  let filePath = path.join(rootDir, 'public', pathname === '/' ? 'index.html' : pathname);
+  // Static File Serving from rootDir or public/
+  let filePath = path.join(rootDir, pathname === '/' ? 'index.html' : pathname);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    filePath = path.join(rootDir, 'public', pathname === '/' ? 'index.html' : pathname);
+  }
 
   try {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
@@ -98,7 +101,7 @@ async function handler(req, res) {
     }
 
     // Client-side fallback to index.html
-    const indexPath = path.join(rootDir, 'public', 'index.html');
+    const indexPath = path.join(rootDir, 'index.html');
     if (fs.existsSync(indexPath)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return fs.createReadStream(indexPath).pipe(res);

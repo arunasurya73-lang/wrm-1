@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en" class="light" data-weather="moderate-cloudy">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AirSense Delhi - Real-time Delhi AQI Forecast & Satellite Fire Tracker</title>
+  <meta name="description" content="Next-generation Delhi NCR air quality index forecasting, real-time pollutant telemetry, coupled atmospheric inversion physics, and satellite biomass smoke tracking." />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Styles -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Weather-Reactive Atmospheric Cloud & Sky Backdrop -->
+  <div class="weather-sky-backdrop" id="weather-sky-backdrop" aria-hidden="true">
+    <div class="sky-gradient-layer"></div>
+    <div class="cloud-mass cloud-mass-1"></div>
+    <div class="cloud-mass cloud-mass-2"></div>
+    <div class="cloud-mass cloud-mass-3"></div>
+    <div class="cloud-puff cloud-puff-a"></div>
+    <div class="cloud-puff cloud-puff-b"></div>
+    <div class="cloud-puff cloud-puff-c"></div>
+    <div class="cloud-mist-layer"></div>
+  </div>
+
+  <!-- Interactive Anti-Gravity Physics Canvas Background -->
+  <div class="anti-gravity-canvas-wrap" id="anti-gravity-container" aria-hidden="true">
+    <canvas id="anti-gravity-canvas"></canvas>
+  </div>
+
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow ambient-glow-1"></div>
+  <div class="ambient-glow ambient-glow-2"></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-container">
+    <!-- Top Navbar -->
+    <header class="navbar" id="main-nav">
+      <!-- Navbar Top Header Row: Logo/Title & Realtime Live Status -->
+      <div class="navbar-top-row">
+        <div class="nav-brand">
+          <div class="brand-icon-wrap" title="AirSense Delhi Atmospheric Intelligence">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">AirSense Delhi</h1>
+            <div class="brand-subtitle">
+              <span class="pulse-badge">
+                <span class="pulse-dot"></span>
+                LIVE SATELLITE & TELEMETRY
+              </span>
+              <span>• Delhi NCR Air Quality</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Realtime Live Clock & Indicator (Top Right Corner) -->
+        <div class="realtime-live-badge" id="realtime-live-indicator" title="Live Realtime Telemetry Clock">
+          <span class="realtime-pulse-ring">
+            <span class="realtime-pulse-dot"></span>
+          </span>
+          <span class="realtime-text">Realtime</span>
+          <span class="realtime-live-tag">LIVE</span>
+          <span class="realtime-clock" id="realtime-live-clock">--:--:--</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Controls: Station & Theme & Refresh -->
+        <div class="nav-controls-row">
+          <div class="station-dropdown-wrap main-station-wrap">
+            <select id="station-select" aria-label="Select Monitoring Station">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="station-dropdown-wrap theme-dropdown-wrap">
+            <select id="theme-select" aria-label="Select UI Theme">
+              <option value="light" selected>☀️ Clean Light</option>
+              <option value="dark">🌑 Dark Glass</option>
+              <option value="cyberpunk">⚡ Cyberpunk</option>
+              <option value="emerald">🌿 Bio Emerald</option>
+            </select>
+          </div>
+
+          <!-- Refresh Data Button -->
+          <button id="refresh-btn" class="icon-btn" title="Refresh Live Data" aria-label="Refresh Data">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Action Pills -->
+        <div class="nav-pills-row">
+          <button id="compare-btn" class="nav-action-pill" title="Compare Stations">
+            <span>⚖️</span> Compare
+          </button>
+
+          <button id="alerts-btn" class="nav-action-pill" title="AQI Alert Settings">
+            <span>🔔</span> Alerts
+          </button>
+
+          <button id="export-btn" class="nav-action-pill" title="Export Clean Report">
+            <span>📥</span> Export
+          </button>
+
+          <button id="btn-live-sensors" class="nav-action-pill module-toggle-btn" title="Live AQI & Sensor Telemetry">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Live AQI & Sensors</span>
+            <span class="pill-badge pill-badge-green">Live</span>
+          </button>
+
+          <button id="btn-fire-tracker" class="nav-action-pill module-toggle-btn" title="NASA Satellite Stubble Burning & Fire Plume Tracker">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+            </svg>
+            <span>Stubble Burning</span>
+            <span class="pill-badge pill-badge-red">Plume</span>
+          </button>
+
+          <button id="btn-awareness-campaign" class="nav-action-pill module-toggle-btn" title="Delhi NCR Clean Air Awareness & Citizen Action Campaigns">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>Awareness Campaign</span>
+            <span class="pill-badge pill-badge-amber">Action</span>
+          </button>
+
+          <button id="btn-advices" class="nav-action-pill" title="Doctor-Verified Health & Protection Advices">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+            <span>Advices</span>
+            <span class="pill-badge pill-badge-blue">Health</span>
+          </button>
+
+          <button id="btn-navigator" class="nav-action-pill" title="Delhi NCR Low-AQI Clean Route Navigator">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <span>Navigator</span>
+            <span class="pill-badge pill-badge-blue">Route</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stubble-Burning Plume Dispersion & Transport Forecast -->
+    <div class="stubble-banner" id="stubble-banner">
+      <div class="stubble-info">
+        <div class="stubble-icon">🌾🔥</div>
+        <div class="stubble-text">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <h3>Agricultural Biomass Smoke & Stubble Plume Trajectory</h3>
+            <span class="pulse-badge" id="plume-trajectory-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #EF4444; font-size: 0.7rem; padding: 2px 8px;">
+              <span class="pulse-dot" style="background-color: #EF4444;"></span>
+              DOWNWIND TRAJECTORY ACTIVE
+            </span>
+          </div>
+          <p id="stubble-alert-text">4 active agricultural hotspot clusters detected NW of Delhi (Sangrur, Ludhiana, Karnal). North-Westerly wind actively carrying smoke plume toward Delhi NCR corridor, estimated arrival in ~6 hours.</p>
+        </div>
+      </div>
+      <div class="stubble-stat-box" id="stubble-forecast-box">
+        <div class="stubble-stat-num" id="stubble-eta-val">~6 hrs</div>
+        <div class="stubble-stat-lbl" id="stubble-eta-lbl">Plume ETA to Delhi NCR</div>
+      </div>
+    </div>
+
+    <!-- 72-Hour Atmospheric Simulation & Forecast Scrubber -->
+    <div class="time-scrubber-card glass-card" id="timeline-scrubber">
+      <div class="scrubber-header">
+        <div class="scrubber-label-group">
+          <span class="scrubber-live-tag">72H FORECAST SCRUBBER</span>
+          <span class="scrubber-time-display" id="scrubber-time-label">Live Baseline (+0h)</span>
+        </div>
+        <div class="scrubber-controls">
+          <button id="scrubber-play-btn" class="scrubber-btn" type="button">
+            <span id="play-icon">▶</span> Play 72h Loop
+          </button>
+          <button id="scrubber-reset-btn" class="scrubber-btn secondary" type="button">
+            Reset to Live
+          </button>
+          <button id="scrubber-expand-btn" class="scrubber-btn toggle-charts-btn" type="button" aria-expanded="false" title="Toggle 72-hour forecast charts outlook">
+            <span class="toggle-icon">📊</span> <span id="toggle-charts-text">View 3-Chart Outlook</span>
+            <span class="chevron-indicator" id="scrubber-chevron">▼</span>
+          </button>
+        </div>
+      </div>
+      <div class="scrubber-slider-wrap">
+        <span class="scrubber-tick-label">Now (+0h)</span>
+        <input type="range" id="time-slider" min="0" max="72" value="0" step="1" class="time-range-slider" aria-label="72-Hour Atmospheric Forecast Scrubber">
+        <span class="scrubber-tick-label">+72h Outlook</span>
+      </div>
+
+      <!-- Nested Horizontally Scrollable 72-Hour Forecast Charts Drawer -->
+      <div class="scrubber-charts-drawer" id="scrubber-charts-drawer" style="display: none;">
+        <div class="scrubber-charts-scroll-track">
+          <!-- 72-Hour Coupled Meteorology-Chemistry AQI Outlook with Confidence Band -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">72-Hour Coupled Meteorology-Chemistry AQI Outlook</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">Hourly projection with atmospheric inversion-expanded confidence envelope</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-7d"></canvas>
+            </div>
+          </div>
+
+          <!-- 72-Hour Multi-Pollutant & Smoke Dispersion Outlook -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">72-Hour Multi-Pollutant & Smoke Dispersion Outlook</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">72-hour hourly PM2.5, PM10 and stubble smoke fraction progression</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-24h"></canvas>
+            </div>
+          </div>
+
+          <!-- Pollutant Severity Fingerprint Radar -->
+          <div class="glass-card forecast-chart-item">
+            <div class="chart-card-header">
+              <div>
+                <h3 style="font-size: 1.15rem;">Pollutant Severity Fingerprint</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary);">Multi-pollutant ratios vs WHO Safety Standard</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-radar"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid" style="margin-top: 1.5rem;">
+      <!-- Left Column: Hero AQI & Health Advisory -->
+      <section class="glass-card hero-aqi-card" id="hero-aqi-section">
+        <div class="hero-station-header">
+          <div>
+            <h2 class="hero-station-name" id="selected-station-name">Anand Vihar, East Delhi</h2>
+            <div class="hero-update-time" id="last-updated-time">Updated: Just now</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <div id="weather-reactive-chip" class="weather-reactive-badge" title="Live Open-Meteo Weather Condition">
+              <span class="weather-icon">⛅</span>
+              <span class="weather-text">Moderate Cloudy</span>
+            </div>
+            <span class="pulse-badge" id="station-distance-badge">Primary Station</span>
+          </div>
+        </div>
+
+        <!-- Gauge Canvas & AQI Value -->
+        <div class="gauge-container">
+          <canvas id="aqi-gauge-canvas" width="280" height="180"></canvas>
+          <div class="gauge-center-text">
+            <span class="gauge-aqi-value" id="current-aqi-val">382</span>
+            <span class="gauge-status-badge" id="current-aqi-status" style="background: rgba(239, 68, 68, 0.2); color: #EF4444;">Severe</span>
+          </div>
+        </div>
+
+        <div class="aqi-desc-box" id="aqi-desc-text">
+          Respiratory effects likely on healthy people; serious impact on sensitive groups.
+        </div>
+
+        <!-- Localized Health Advisory Cards -->
+        <div class="advisory-section">
+          <div class="advisory-header">Localized Health Actions</div>
+          <div class="advisory-grid">
+            <div class="advisory-card" id="adv-card-mask">
+              <span class="advisory-icon">😷</span>
+              <div class="advisory-status" id="adv-mask">Wear N95 Mask</div>
+            </div>
+            <div class="advisory-card" id="adv-card-purifier">
+              <span class="advisory-icon">💨</span>
+              <div class="advisory-status" id="adv-purifier">Run Purifier (High)</div>
+            </div>
+            <div class="advisory-card" id="adv-card-outdoor">
+              <span class="advisory-icon">🏃‍♂️</span>
+              <div class="advisory-status" id="adv-outdoor">Avoid Outdoor Activity</div>
+            </div>
+            <div class="advisory-card" id="adv-card-windows">
+              <span class="advisory-icon">🪟</span>
+              <div class="advisory-status" id="adv-windows">Close Windows</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Pollutants Telemetry -->
+        <div class="pollutant-grid">
+          <div class="pollutant-card">
+            <div class="pollutant-name">PM2.5</div>
+            <div class="pollutant-val" id="val-pm25" style="color: #EF4444;">295</div>
+            <div class="pollutant-unit">µg/m³ (5.9x Limit)</div>
+          </div>
+          <div class="pollutant-card">
+            <div class="pollutant-name">PM10</div>
+            <div class="pollutant-val" id="val-pm10" style="color: #F97316;">412</div>
+            <div class="pollutant-unit">µg/m³</div>
+          </div>
+          <div class="pollutant-card">
+            <div class="pollutant-name">NO₂</div>
+            <div class="pollutant-val" id="val-no2" style="color: #F59E0B;">68</div>
+            <div class="pollutant-unit">ppb</div>
+          </div>
+          <div class="pollutant-card">
+            <div class="pollutant-name">SO₂</div>
+            <div class="pollutant-val" id="val-so2" style="color: #10B981;">18</div>
+            <div class="pollutant-unit">ppb</div>
+          </div>
+          <div class="pollutant-card">
+            <div class="pollutant-name">CO</div>
+            <div class="pollutant-val" id="val-co" style="color: #F59E0B;">2.8</div>
+            <div class="pollutant-unit">mg/m³</div>
+          </div>
+          <div class="pollutant-card">
+            <div class="pollutant-name">O₃ (Ozone)</div>
+            <div class="pollutant-val" id="val-o3" style="color: #10B981;">24</div>
+            <div class="pollutant-unit">ppb</div>
+          </div>
+        </div>
+
+        <!-- Weather Telemetry Bar -->
+        <div class="weather-telemetry">
+          <div class="weather-box">
+            <span class="weather-lbl">Wind Flow</span>
+            <span class="weather-val" id="weather-wind">NW 6.2 km/h</span>
+          </div>
+          <div class="weather-box">
+            <span class="weather-lbl">Temp</span>
+            <span class="weather-val" id="weather-temp">24.5°C</span>
+          </div>
+          <div class="weather-box">
+            <span class="weather-lbl">Humidity</span>
+            <span class="weather-val" id="weather-humidity">68%</span>
+          </div>
+          <div class="weather-box">
+            <span class="weather-lbl">Visibility</span>
+            <span class="weather-val" id="weather-visibility">1.2 km</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Interactive Map & Plume Tracker -->
+      <section class="glass-card map-card" id="map-section">
+        <div class="map-header">
+          <div>
+            <h2 style="font-size: 1.25rem;">Spatial AQI & Satellite Fire Plume Map</h2>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Interactive Delhi NCR & Punjab/Haryana Agricultural Fire Corridor with NASA FIRMS active hotspots and atmospheric wind vectors</p>
+          </div>
+          <div class="pulse-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #EF4444;">
+            <span class="pulse-dot" style="background-color: #EF4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);"></span>
+            LIVE SOURCE CORRIDOR
+          </div>
+        </div>
+
+        <div class="map-container-wrap">
+          <div id="leaflet-map"></div>
+        </div>
+
+        <!-- Clean-Air & Safe Commute Route Planner Panel -->
+        <div class="route-planner-panel" id="route-planner-panel">
+          <div class="route-planner-header">
+            <div class="route-planner-title-wrap">
+              <span class="route-planner-icon">🛣️</span>
+              <div>
+                <h3 style="font-size: 1.05rem; margin: 0; font-weight: 700;">Clean-Air & Safe Commute Route Planner</h3>
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 2px 0 0 0;">Compare Delhi NCR travel corridors, PM2.5 dosage exposure & safety measures</p>
+              </div>
+            </div>
+            <span class="pulse-badge" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #10B981; font-size: 0.72rem; padding: 3px 8px;">
+              <span class="pulse-dot" style="background-color: #10B981;"></span>
+              ECO-AIR CORRIDORS
+            </span>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="route-presets-wrap">
+            <span class="presets-label">Popular Trips:</span>
+            <div class="presets-list">
+              <button type="button" class="route-preset-btn active" data-from="cp" data-to="noida-sec62">CP ➔ Noida Sec 62</button>
+              <button type="button" class="route-preset-btn" data-from="igi-airport" data-to="gurugram-cyber">Airport ➔ Cyber City</button>
+              <button type="button" class="route-preset-btn" data-from="rohini-sec16" data-to="cp">Rohini ➔ Connaught Place</button>
+              <button type="button" class="route-preset-btn" data-from="dwarka-sec8" data-to="anand-vihar">Dwarka ➔ Anand Vihar</button>
+            </div>
+          </div>
+
+          <!-- Route Origin & Destination Controls -->
+          <div class="route-inputs-bar">
+            <div class="route-input-group">
+              <label for="route-origin-select"><span class="origin-dot">A</span> Origin (Start)</label>
+              <select id="route-origin-select" class="route-select" aria-label="Origin Transit Hub"></select>
+            </div>
+
+            <button type="button" id="route-swap-btn" class="route-swap-btn" title="Swap Origin and Destination" aria-label="Swap Origin and Destination">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 5h18"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 19H3"></path>
+              </svg>
+            </button>
+
+            <div class="route-input-group">
+              <label for="route-dest-select"><span class="dest-dot">B</span> Destination (End)</label>
+              <select id="route-dest-select" class="route-select" aria-label="Destination Transit Hub"></select>
+            </div>
+
+            <div class="route-actions-group">
+              <button type="button" id="btn-calculate-route" class="btn-calculate-route">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+                </svg>
+                Find Clean Route
+              </button>
+              <button type="button" id="btn-clear-route" class="btn-clear-route" title="Clear routes from map">
+                ✕ Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Route Comparison & Safety Results Container -->
+          <div id="route-planner-results" class="route-planner-results">
+            <!-- Dynamically populated by CleanAirRoutePlanner -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Atmospheric Inversion & Boundary Layer Mixing Panel (Feature 1) -->
+    <section class="glass-card inversion-panel-card" id="inversion-panel-section" style="margin-top: 1.5rem;">
+      <div class="inversion-panel-header">
+        <div>
+          <div class="inversion-badge-tag">ATMOSPHERIC PHYSICS COUPLING</div>
+          <h3 style="font-size: 1.2rem; margin-top: 0.25rem;">Atmospheric Inversion & Boundary Layer Mixing (72h)</h3>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">Coupled thermodynamic soundings from Open-Meteo: Inversion Delta (850hPa - 2m ΔT) & Planetary Boundary Layer (PBL) Ventilation</p>
+        </div>
+        <div class="inversion-status-pill" id="inversion-status-pill">
+          <span class="inversion-status-dot" id="inversion-status-dot"></span>
+          <span id="inversion-status-label">Strong Inversion</span>
+        </div>
+      </div>
+
+      <div class="inversion-metrics-grid">
+        <div class="inversion-metric-box">
+          <span class="inversion-metric-lbl">Inversion Delta (850hPa - 2m ΔT)</span>
+          <span class="inversion-metric-val" id="inversion-delta-val">+1.4 °C</span>
+          <span class="inversion-metric-sub" id="inversion-delta-sub">Thermal Trapping Ceiling Active</span>
+        </div>
+        <div class="inversion-metric-box">
+          <span class="inversion-metric-lbl">Planetary Boundary Layer (PBL)</span>
+          <span class="inversion-metric-val" id="inversion-pbl-val">310 m</span>
+          <span class="inversion-metric-sub" id="inversion-pbl-sub" style="color: #EF4444;">⚠️ Below 500m Critical Trapping Height</span>
+        </div>
+        <div class="inversion-metric-box">
+          <span class="inversion-metric-lbl">Ventilation Index</span>
+          <span class="inversion-metric-val" id="inversion-vent-val">1,860 m²/s</span>
+          <span class="inversion-metric-sub" id="inversion-vent-sub">PBL × Surface Wind Velocity</span>
+        </div>
+      </div>
+
+      <!-- Plain Language Dynamic Explanation Banner -->
+      <div class="inversion-dynamic-desc" id="inversion-dynamic-desc">
+        Strong atmospheric inversion (+1.4°C inversion delta, PBL 310m) — severe thermal cap will trap pollutants near the surface, AQI likely to spike sharply after 9 PM.
+      </div>
+
+      <!-- 72-Hour Boundary Layer Height Line Chart with 500m Trapping Risk Shaded Zone -->
+      <div class="inversion-chart-container" style="height: 240px; margin-top: 1.25rem;">
+        <canvas id="chart-pbl-inversion"></canvas>
+      </div>
+    </section>
+
+    <!-- Delhi NCR Clean Air Awareness & Citizen Action Hub -->
+    <section class="glass-card awareness-section" id="awareness-campaign-section" style="margin-top: 1.5rem;">
+      <div class="awareness-header-row">
+        <div>
+          <div class="awareness-tag-pill">DELHI NCR CITIZEN & CIVIC ACTION HUB</div>
+          <h2 style="font-size: 1.25rem; margin-top: 0.35rem;">Clean Air Awareness & Government Mitigation Campaigns</h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">Verified CAQM Graded Response Action Plan (GRAP) protocols, active municipal anti-smog drives, bio-decomposer coverage, and localized citizen action pledges for Delhi NCR.</p>
+        </div>
+        <div class="grap-live-badge">
+          <span class="pulse-dot" style="background-color: #EF4444;"></span>
+          <span>CAQM GRAP STAGE III (SEVERE) ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Campaign Lifecycle Filter Tabs -->
+      <div class="campaign-lifecycle-bar">
+        <div class="lifecycle-filter-tabs">
+          <button class="campaign-tab-btn active" data-filter="all">
+            <span>📋</span> All Campaigns <span class="tab-count-badge">7</span>
+          </button>
+          <button class="campaign-tab-btn" data-filter="ongoing">
+            <span class="pulse-dot-sm" style="background-color: #EF4444;"></span> Ongoing <span class="tab-count-badge">4</span>
+          </button>
+          <button class="campaign-tab-btn" data-filter="upcoming">
+            <span>⏳</span> Upcoming / Scheduled <span class="tab-count-badge">3</span>
+          </button>
+        </div>
+        <div class="campaign-summary-hint">
+          <span>🕒 Showing verified Delhi NCR Clean Air campaigns with active timelines & operational windows</span>
+        </div>
+      </div>
+
+      <!-- Key Official Delhi NCR Clean Air Campaigns Grid -->
+      <div class="campaign-grid" id="campaign-cards-grid">
+        <!-- ==================== ONGOING CAMPAIGNS (4) ==================== -->
+        <!-- Ongoing 1: Red Light On, Gaadi Off -->
+        <div class="campaign-card" data-status="ongoing">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(239, 68, 68, 0.12); color: #EF4444;">VEHICULAR EMISSIONS</div>
+            <div class="campaign-status-pill status-ongoing">
+              <span class="pulse-dot-sm" style="background-color: #EF4444;"></span> ONGOING
+            </div>
+          </div>
+          <h3 class="campaign-title">"Red Light On, Gaadi Off" Drive (Phase 2)</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Oct 12, 2026 – Nov 15, 2026</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">08:00 AM – 08:00 PM (Peak Hours)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">100+ Major Crossings (ITO, AIIMS, Ashram)</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-ongoing" style="width: 55%;"></div>
+            </div>
+            <div class="progress-sub-text">Day 8 of 35 &bull; 55% Active Phase</div>
+          </div>
+
+          <p class="campaign-desc">Civil defense volunteers deployed across 100 high-density intersections holding awareness placards to encourage drivers to switch off idling engines.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Cuts local intersection CO & VOCs by up to 20%</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Turn off your vehicle engine at red lights with wait timer &gt;15s.
+          </div>
+        </div>
+
+        <!-- Ongoing 2: Pusa Bio-Decomposer Spraying -->
+        <div class="campaign-card" data-status="ongoing">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">AGRARIAN STUBBLE</div>
+            <div class="campaign-status-pill status-ongoing">
+              <span class="pulse-dot-sm" style="background-color: #EF4444;"></span> ONGOING
+            </div>
+          </div>
+          <h3 class="campaign-title">Pusa Bio-Decomposer Farm Spraying</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Sep 25, 2026 – Oct 31, 2026</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">06:00 AM – 06:00 PM (Daylight Spraying)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">5,000+ Acres in Outer Delhi (Narela, Bawana)</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-ongoing" style="width: 78%;"></div>
+            </div>
+            <div class="progress-sub-text">3,900 of 5,000 Acres Sprayed &bull; 78% Complete</div>
+          </div>
+
+          <p class="campaign-desc">Free microbial enzyme spraying by Delhi Agriculture Department directly onto harvested paddy fields, converting residue into rich fertilizer within 20 days.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Zero open stubble burning across covered farmland</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Support in-situ composting and report any field fires to local panchayats.
+          </div>
+        </div>
+
+        <!-- Ongoing 3: Intensive Anti-Dust & Water Sprinkler Drive -->
+        <div class="campaign-card" data-status="ongoing">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(59, 130, 246, 0.12); color: #3B82F6;">FUGITIVE DUST</div>
+            <div class="campaign-status-pill status-ongoing">
+              <span class="pulse-dot-sm" style="background-color: #EF4444;"></span> ONGOING
+            </div>
+          </div>
+          <h3 class="campaign-title">Intensive Anti-Dust & Sprinkler Drive</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Oct 01, 2026 – Dec 15, 2026</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">24x7 Round-the-Clock Patrols</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">13 Hotspots (Anand Vihar, Wazirpur, Punjabi Bagh)</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-ongoing" style="width: 42%;"></div>
+            </div>
+            <div class="progress-sub-text">Day 19 of 75 &bull; Active Hotspot Washing</div>
+          </div>
+
+          <p class="campaign-desc">185 mobile anti-smog guns and 70 mechanized road sweepers deployed continuously on high-traffic arterial avenues and construction perimeter belts.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Lowers re-suspended roadside PM10 levels by ~35%</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Report unpaved road dust or uncovered sand trucks via the Green Delhi App.
+          </div>
+        </div>
+
+        <!-- Ongoing 4: Green Delhi App 24x7 Grievance Cell -->
+        <div class="campaign-card" data-status="ongoing">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(245, 158, 11, 0.12); color: #F59E0B;">CIVIC MONITORING</div>
+            <div class="campaign-status-pill status-ongoing">
+              <span class="pulse-dot-sm" style="background-color: #EF4444;"></span> ONGOING
+            </div>
+          </div>
+          <h3 class="campaign-title">Green Delhi App 24x7 Vigilance Cell</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Jan 01, 2026 – Dec 31, 2026 (Year-Round)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">24x7 Real-Time Citizen Ingestion</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">Entire Delhi NCT Region (DPCC & MCD)</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-ongoing" style="width: 72%;"></div>
+            </div>
+            <div class="progress-sub-text">64,200+ Complaints Resolved &bull; 94.2% Success</div>
+          </div>
+
+          <p class="campaign-desc">Dedicated control room connecting 21 government agencies for geo-tagged resolution of waste burning, industrial smoke, and construction dust violations.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Average 4-hour SLA response time for emergency violations</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Download the Green Delhi App and upload geo-tagged photos of any burning or dust.
+          </div>
+        </div>
+
+        <!-- ==================== UPCOMING CAMPAIGNS (3) ==================== -->
+        <!-- Upcoming 1: Strict Green Firecracker Ban & Border Vigilance -->
+        <div class="campaign-card" data-status="upcoming">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(236, 72, 153, 0.12); color: #EC4899;">FESTIVE EMISSIONS</div>
+            <div class="campaign-status-pill status-upcoming">
+              <span>⏳</span> UPCOMING
+            </div>
+          </div>
+          <h3 class="campaign-title">Anti-Firecracker Border & Retail Vigilance</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Oct 25, 2026 – Nov 05, 2026 (Starts in 6 Days)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">24x7 Border Checkposts & Night Patrols</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">Delhi NCR Borders & Wholesale Markets</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-upcoming" style="width: 0%;"></div>
+            </div>
+            <div class="progress-sub-text">Scheduled Launch: Oct 25 &bull; 150 Police Teams Ready</div>
+          </div>
+
+          <p class="campaign-desc">Strict enforcement of total ban on manufacturing, storage, online sale, and bursting of firecrackers with joint DPCC and Delhi Police border squads.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Prevents 800+ AQI post-Diwali hazardous particulate spikes</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Celebrate with green earthen lamps (diyas) and light displays instead of fireworks.
+          </div>
+        </div>
+
+        <!-- Upcoming 2: Odd-Even Vehicular Rationing Standby Protocol -->
+        <div class="campaign-card" data-status="upcoming">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(168, 85, 247, 0.12); color: #A855F7;">MOBILITY RATIONING</div>
+            <div class="campaign-status-pill status-upcoming">
+              <span>⏳</span> UPCOMING (STANDBY)
+            </div>
+          </div>
+          <h3 class="campaign-title">Odd-Even Vehicle Rationing (Contingency)</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Nov 10, 2026 – Nov 20, 2026 (GRAP-4 Trigger)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">08:00 AM – 08:00 PM (Monday to Saturday)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">All Non-Commercial NCT Road Corridors</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-upcoming" style="width: 0%;"></div>
+            </div>
+            <div class="progress-sub-text">Standby Activation upon AQI &gt;450 Severe+ Forecast</div>
+          </div>
+
+          <p class="campaign-desc">Emergency traffic restriction allowing private vehicles with odd/even registration numbers on alternate days, coupled with 2,000 extra DTC buses and DMRC train runs.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Reduces on-road vehicular congestion and emissions by ~30%</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Prepare for carpooling or use Delhi Metro smart cards during the operational window.
+          </div>
+        </div>
+
+        <!-- Upcoming 3: Cloud Seeding Atmospheric Washout Trial -->
+        <div class="campaign-card" data-status="upcoming">
+          <div class="campaign-card-header">
+            <div class="campaign-badge-pill" style="background: rgba(6, 182, 212, 0.12); color: #06B6D4;">ATMOSPHERIC SCIENCE</div>
+            <div class="campaign-status-pill status-upcoming">
+              <span>⏳</span> UPCOMING (PILOT)
+            </div>
+          </div>
+          <h3 class="campaign-title">Cloud Seeding / Artificial Rain Washout Trial</h3>
+          
+          <div class="campaign-time-block">
+            <div class="time-row">
+              <span class="time-label">📅 Period:</span>
+              <span class="time-val">Nov 18, 2026 – Nov 22, 2026 (Subject to Moisture)</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">⏰ Daily Window:</span>
+              <span class="time-val">10:00 AM – 04:00 PM Flight Windows</span>
+            </div>
+            <div class="time-row">
+              <span class="time-label">📍 Target:</span>
+              <span class="time-val">East & North Delhi Air Sheds (IIT Kanpur)</span>
+            </div>
+            <div class="campaign-progress-bar">
+              <div class="progress-fill progress-upcoming" style="width: 0%;"></div>
+            </div>
+            <div class="progress-sub-text">Aviation & Met Clearance Phase &bull; IIT Kanpur Pilot</div>
+          </div>
+
+          <p class="campaign-desc">Specialized aircraft spraying silver iodide / salt flares into moisture-bearing clouds during peak meteorological inversion to trigger rain that scrubs particulate smog.</p>
+          <div class="campaign-impact-row">
+            <span class="impact-label">Impact:</span>
+            <span class="impact-val">Rapid short-term washout dropping PM2.5 by 40–50%</span>
+          </div>
+          <div class="campaign-action-box">
+            <strong>Citizen Action:</strong> Monitor AirSense Delhi live telemetry for post-precipitation inversion shifts.
+          </div>
+        </div>
+      </div>
+
+      <!-- Citizen Clean Air Pledge & Official Directives Bar -->
+      <div class="citizen-pledge-banner">
+        <div class="pledge-info-col">
+          <div class="pledge-badge">🇮🇳 DELHI CITIZEN CLEAN AIR PLEDGE</div>
+          <h3>Take the Delhi Clean Air Pledge</h3>
+          <p>Join thousands of responsible citizens across Delhi NCR committed to turning off idling engines, reporting garbage burning, and adopting public transit.</p>
+          <div class="pledge-action-wrap">
+            <button id="btn-take-pledge" class="pledge-btn" type="button">
+              <span>🌟</span> <span id="pledge-btn-text">I Pledge for Clean Air Delhi</span>
+            </button>
+            <div class="pledge-counter-wrap">
+              <span class="pledge-counter-num" id="pledge-counter-val">34,820</span>
+              <span class="pledge-counter-lbl">Delhiites Pledged Today</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="helpline-directory-col">
+          <div class="helpline-title">Official 24x7 Helplines & Portals:</div>
+          <div class="helpline-items">
+            <div class="helpline-item">
+              <span class="hl-icon">📞</span>
+              <div>
+                <strong>Green Delhi Helpline:</strong>
+                <span class="hl-val">1800-11-8600</span>
+              </div>
+            </div>
+            <div class="helpline-item">
+              <span class="hl-icon">🚨</span>
+              <div>
+                <strong>DPCC Air Quality Control:</strong>
+                <span class="hl-val">011-22307138</span>
+              </div>
+            </div>
+            <div class="helpline-item">
+              <span class="hl-icon">🏢</span>
+              <div>
+                <strong>CAQM Taskforce Support:</strong>
+                <span class="hl-val">caqm-support@gov.in</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Station Leaderboard Table & Region Filters -->
+    <section class="glass-card table-section">
+      <div class="table-header-row">
+        <div>
+          <h3 style="font-size: 1.15rem;">Global & Regional Monitoring Station Registry</h3>
+          <p style="font-size: 0.78rem; color: var(--text-secondary);">Live telemetry across Delhi NCR, India Metros, and Global Mega-Cities</p>
+        </div>
+        
+        <div class="table-actions-group">
+          <!-- Region Filter Tabs -->
+          <div class="region-filter-tabs">
+            <button class="region-tab-btn active" data-region="all">All Stations</button>
+            <button class="region-tab-btn" data-region="Delhi NCR">📍 Delhi NCR</button>
+            <button class="region-tab-btn" data-region="India">🇮🇳 India Metros</button>
+          </div>
+
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="station-search-input" placeholder="Search city or station..." aria-label="Search station">
+          </div>
+        </div>
+      </div>
+
+      <div class="stations-table-wrap">
+        <table class="stations-table" id="stations-table">
+          <thead>
+            <tr>
+              <th>Station / City Location</th>
+              <th>Region</th>
+              <th>AQI Index</th>
+              <th>PM2.5</th>
+              <th>PM10</th>
+              <th>Smoke Share</th>
+              <th>Wind Vector</th>
+              <th>Temperature</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="stations-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>
+        <strong>AirSense Delhi</strong> &bull; Open Environmental Data, Delhi NCR AQI & NASA FIRMS Satellite Tracking
+      </div>
+      <div class="footer-links">
+        <a href="#hero-aqi-section" class="footer-link">Live Telemetry</a>
+        <a href="#map-section" class="footer-link">Corridor Satellite Map</a>
+        <a href="https://firms.modaps.eosdis.nasa.gov/" target="_blank" rel="noopener noreferrer" class="footer-link">NASA FIRMS</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Comparison Modal -->
+  <div class="modal-backdrop" id="compare-modal" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">DUAL ANALYSIS</span>
+          <h2>Station Comparison</h2>
+        </div>
+        <button class="modal-close-btn" id="close-compare-modal">&times;</button>
+      </div>
+      <div class="compare-selector-row">
+        <div class="compare-select-box">
+          <label for="compare-station-1">Station 1</label>
+          <select id="compare-station-1"></select>
+        </div>
+        <div class="compare-vs-badge">VS</div>
+        <div class="compare-select-box">
+          <label for="compare-station-2">Station 2</label>
+          <select id="compare-station-2"></select>
+        </div>
+      </div>
+      <div class="compare-metrics-grid" id="compare-metrics-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts Config Modal -->
+  <div class="modal-backdrop" id="alerts-modal" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">NOTIFICATIONS</span>
+          <h2>AQI Alert Settings</h2>
+        </div>
+        <button class="modal-close-btn" id="close-alerts-modal">&times;</button>
+      </div>
+      <div class="modal-body-form">
+        <div class="form-group">
+          <label for="alert-threshold-input">Trigger Audio & Toast Alert When AQI Exceeds:</label>
+          <div class="range-val-display">
+            <input type="range" id="alert-threshold-slider" min="100" max="450" step="25" value="300">
+            <span id="threshold-val-lbl">300 (Severe)</span>
+          </div>
+        </div>
+        <div class="form-group toggle-group">
+          <label for="toggle-audio-alert">Play Synthesized Chime on Threshold Breach</label>
+          <input type="checkbox" id="toggle-audio-alert" checked>
+        </div>
+        <div class="form-group toggle-group">
+          <label for="toggle-desktop-notify">Browser Desktop Notifications</label>
+          <input type="checkbox" id="toggle-desktop-notify" checked>
+        </div>
+        <button id="save-alerts-btn" class="primary-btn-large">Save & Apply Alert Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor & Environmental Health Advices Modal -->
+  <div class="modal-backdrop" id="advices-modal" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card modal-card-large">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">DOCTOR & EXPERT CITIZEN ADVICE</span>
+          <h2>Health & Daily Smog Protection Guide</h2>
+        </div>
+        <button class="modal-close-btn" id="close-advices-modal">&times;</button>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="campaign-filter-tabs modal-advice-tabs">
+        <button class="campaign-tab-btn modal-advice-tab-btn active" data-filter="all">All Advices</button>
+        <button class="campaign-tab-btn modal-advice-tab-btn" data-filter="vulnerable">🫁 Children & Seniors</button>
+        <button class="campaign-tab-btn modal-advice-tab-btn" data-filter="indoor">🏠 Indoor Defense</button>
+        <button class="campaign-tab-btn modal-advice-tab-btn" data-filter="commute">🚗 Daily Commute</button>
+        <button class="campaign-tab-btn modal-advice-tab-btn" data-filter="wellness">🍵 Wellness & Care</button>
+      </div>
+
+      <!-- Advices Grid -->
+      <div class="advices-grid" id="modal-advices-grid">
+        <!-- Column 1: Vulnerable & High-Risk Groups -->
+        <div class="advice-card" data-category="vulnerable">
+          <div class="advice-card-top">
+            <div class="advice-category-pill category-vulnerable">VULNERABLE GROUPS</div>
+            <span class="advice-urgency-tag urgency-high">HIGH PRIORITY</span>
+          </div>
+          <div class="advice-header-wrap">
+            <span class="advice-main-icon">🫁</span>
+            <div>
+              <h3 class="advice-card-title">Children & Seniors</h3>
+              <span class="advice-card-subtitle">Lungs & Heart Protection</span>
+            </div>
+          </div>
+          <ul class="advice-points-list">
+            <li><strong>Keep Inhalers Handy:</strong> Keep rescue inhalers and SpO2 pulse oximeters readily accessible at all times.</li>
+            <li><strong>Avoid Peak Smog Hours:</strong> Avoid outdoor walks and workouts before 10 AM & after 6 PM during heavy smog.</li>
+          </ul>
+          <div class="advice-highlight-box highlight-vulnerable">
+            <span class="hl-icon">⚠️</span>
+            <span><strong>Emergency:</strong> Seek immediate medical care if severe breathlessness or chest tightness occurs.</span>
+          </div>
+        </div>
+
+        <!-- Column 2: Indoor & Home Air Purification -->
+        <div class="advice-card" data-category="indoor">
+          <div class="advice-card-top">
+            <div class="advice-category-pill category-indoor">INDOOR PROTECTION</div>
+            <span class="advice-urgency-tag urgency-essential">MUST FOLLOW</span>
+          </div>
+          <div class="advice-header-wrap">
+            <span class="advice-main-icon">🏠</span>
+            <div>
+              <h3 class="advice-card-title">Home & Indoor Defense</h3>
+              <span class="advice-card-subtitle">Air Purification & Smog Sealing</span>
+            </div>
+          </div>
+          <ul class="advice-points-list">
+            <li><strong>Use Wet Mopping:</strong> Use damp mops instead of dry brooms to avoid stirring up fine PM10 dust.</li>
+            <li><strong>Optimal Purifier Placement:</strong> Place air purifiers 1 foot away from walls with doors and windows closed.</li>
+          </ul>
+          <div class="advice-highlight-box highlight-indoor">
+            <span class="hl-icon">💡</span>
+            <span><strong>Pro Tip:</strong> Clean air purifier pre-filters every 15 days for maximum clean air delivery.</span>
+          </div>
+        </div>
+
+        <!-- Column 3: Commute & Transit Safety -->
+        <div class="advice-card" data-category="commute">
+          <div class="advice-card-top">
+            <div class="advice-category-pill category-commute">COMMUTE & TRAVEL</div>
+            <span class="advice-urgency-tag urgency-active">DAILY PROTOCOL</span>
+          </div>
+          <div class="advice-header-wrap">
+            <span class="advice-main-icon">🚗</span>
+            <div>
+              <h3 class="advice-card-title">Daily Travel & Transit</h3>
+              <span class="advice-card-subtitle">Vehicle AC & Mask Protocol</span>
+            </div>
+          </div>
+          <ul class="advice-points-list">
+            <li><strong>Turn On AC Recirculation:</strong> Keep car AC on internal air mode to block road exhaust fumes from entering.</li>
+            <li><strong>Wear Certified N95 Mask:</strong> Always wear a snug N95 mask when traveling on two-wheelers or open transit.</li>
+          </ul>
+          <div class="advice-highlight-box highlight-commute">
+            <span class="hl-icon">🛡️</span>
+            <span><strong>Rule:</strong> Turn off your engine at traffic signals exceeding 15 seconds to cut localized pollution.</span>
+          </div>
+        </div>
+
+        <!-- Column 4: Nutrition & Medical Wellness -->
+        <div class="advice-card" data-category="wellness">
+          <div class="advice-card-top">
+            <div class="advice-category-pill category-wellness">WELLNESS & CARE</div>
+            <span class="advice-urgency-tag urgency-preventive">PREVENTIVE CARE</span>
+          </div>
+          <div class="advice-header-wrap">
+            <span class="advice-main-icon">🍵</span>
+            <div>
+              <h3 class="advice-card-title">Wellness & Respiratory Care</h3>
+              <span class="advice-card-subtitle">Detox & Immunity Boost</span>
+            </div>
+          </div>
+          <ul class="advice-points-list">
+            <li><strong>Daily Steam Inhalation:</strong> Inhale warm steam for 5 minutes daily to clear trapped smog soot from airways.</li>
+            <li><strong>Warm Herbal Fluids:</strong> Drink warm ginger-tulsi herbal tea and stay well-hydrated with 2.5L+ water daily.</li>
+          </ul>
+          <div class="advice-highlight-box highlight-wellness">
+            <span class="hl-icon">🌿</span>
+            <span><strong>Doctor Tip:</strong> Organic jaggery and warm turmeric milk help naturally soothe throat and lung linings.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating AI Chatbot Launcher Button -->
+  <button id="ai-chat-launcher" class="ai-chat-launcher" aria-label="Open AirSense AI Chatbot" title="Chat with AirSense AI Advisor">
+    <div class="launcher-glow-ring"></div>
+    <div class="launcher-icon-inner">
+      <svg class="launcher-wand-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+        <path d="M5 3v4"></path>
+        <path d="M3 5h4"></path>
+        <path d="M19 17v4"></path>
+        <path d="M17 19h4"></path>
+      </svg>
+    </div>
+    <span class="launcher-label">Ask AI</span>
+    <span id="ai-chat-badge" class="ai-chat-badge" title="AI Advisor Online"></span>
+  </button>
+
+  <!-- Floating AI Chatbot Box / Modal Window -->
+  <div id="ai-chat-box" class="ai-chat-box" aria-hidden="true" role="dialog" aria-label="AirSense AI Assistant">
+    <!-- Chat Header -->
+    <div class="ai-chat-header">
+      <div class="ai-chat-header-brand">
+        <div class="ai-avatar-badge">
+          <span>✨</span>
+          <span class="ai-online-dot"></span>
+        </div>
+        <div class="ai-header-titles">
+          <h3>AirSense AI</h3>
+          <span class="ai-header-subtitle">Environmental & Health Advisor</span>
+        </div>
+      </div>
+      <div class="ai-header-actions">
+        <button id="ai-chat-clear" class="ai-action-btn" title="Clear Conversation" aria-label="Clear chat">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+        <button id="ai-chat-minimize" class="ai-action-btn" title="Minimize" aria-label="Minimize chat">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button id="ai-chat-close" class="ai-action-btn close-x" title="Close" aria-label="Close chat">&times;</button>
+      </div>
+    </div>
+
+    <!-- Live Context Bar -->
+    <div class="ai-chat-context-bar">
+      <span class="context-pill">⚡ Real-time Delhi Telemetry Grounded</span>
+      <span class="context-pill">🧠 Powered by Gemini AI</span>
+    </div>
+
+    <!-- Quick Question Suggestions -->
+    <div class="ai-chat-suggestions-container">
+      <button class="chat-suggestion-pill" data-query="Is it safe to jog or exercise outside today?">🏃 Safe to jog today?</button>
+      <button class="chat-suggestion-pill" data-query="Which areas in Delhi NCR have the cleanest air right now?">🍃 Cleanest air zones?</button>
+      <button class="chat-suggestion-pill" data-query="What type of mask is recommended for PM2.5 and smog?">😷 N95 mask guide</button>
+      <button class="chat-suggestion-pill" data-query="What are the current severe AQI hotspots in Delhi?">🚨 AQI Hotspots</button>
+      <button class="chat-suggestion-pill" data-query="How does stubble burning and winter inversion affect Delhi air?">🔥 Stubble & Inversion</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="ai-chat-messages" class="ai-chat-messages" role="log" aria-live="polite">
+      <!-- Dynamic messages injected here -->
+    </div>
+
+    <!-- Input Form -->
+    <form id="ai-chat-form" class="ai-chat-form">
+      <div class="ai-input-wrapper">
+        <input 
+          type="text" 
+          id="ai-chat-input" 
+          placeholder="Ask about AQI, mask tips, workout safety..." 
+          autocomplete="off" 
+          aria-label="Ask AI chatbot a question"
+        />
+        <button type="submit" id="ai-chat-send" class="ai-send-btn" title="Send message" aria-label="Send message">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="ai-disclaimer">AirSense AI synthesizes real-time sensor & meteorological telemetry for advisory insights.</div>
+    </form>
+  </div>
+
+  <!-- Navigator Google Maps-Style Modal Dialog with Dedicated Map -->
+  <div class="navigator-overlay" id="navigator-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="navigator-dialog-title">
+    <div class="navigator-popup navigator-popup-split" id="navigator-popup-container" tabindex="-1">
+      
+      <!-- Top Header -->
+      <div class="navigator-header">
+        <h2 id="navigator-dialog-title" class="navigator-header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+          </svg>
+          <span>Delhi NCR Clean-Air Route Navigator</span>
+        </h2>
+        <div class="navigator-header-right">
+          <span class="navigator-live-chip">LIVE TELEMETRY MAP</span>
+          <button class="navigator-close-btn" id="close-navigator-modal" aria-label="Close route planner" title="Close (Esc)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Split Container: Controls on Left, Dedicated Map on Right -->
+      <div class="navigator-split-body">
+        
+        <!-- Left Sidebar: Controls & Locations -->
+        <div class="navigator-sidebar-pane">
+          <!-- Travel Modes Bar -->
+          <div class="navigator-modes-bar" role="tablist" aria-label="Travel Modes">
+            <button class="navigator-mode-btn" data-mode="directions" title="Route" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+              <span>Route</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="drive" title="Drive" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="8" rx="2" /><path d="M5 11l2-5h10l2 5" /><circle cx="7.5" cy="15.5" r="1.5" /><circle cx="16.5" cy="15.5" r="1.5" /></svg>
+              <span>Drive</span>
+            </button>
+            <button class="navigator-mode-btn active" data-mode="motorbike" title="Two-Wheeler" role="tab" aria-selected="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="5" cy="16" r="3" /><circle cx="19" cy="16" r="3" /><path d="M12 16h3l3-7h-4l-3 4-2-1" /><line x1="8" y1="9" x2="10" y2="9" /></svg>
+              <span>Motorbike</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="transit" title="Transit" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="15" rx="2" /><path d="M4 11h16M8 15h.01M16 15h.01M6 18l-2 3M18 18l2 3" /></svg>
+              <span>Transit</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="walk" title="Walk" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="13" cy="4" r="2" /><path d="M9 20l3-6 2 3 3 5M12 10l-2 4 4 2M15 10l-3-2-3 2" /></svg>
+              <span>Walk</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="cycle" title="Cycle" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="18.5" cy="17.5" r="3.5" /><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 11l3-4h3l3 4.5M12 17.5V11" /></svg>
+              <span>Cycle</span>
+            </button>
+          </div>
+
+          <!-- Inputs Section -->
+          <div class="navigator-inputs-section">
+            <div class="navigator-inputs-track" aria-hidden="true">
+              <div class="start-dot"></div>
+              <div class="track-dots"></div>
+              <div class="dest-pin-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="navigator-inputs-fields">
+              <div class="navigator-input-wrap">
+                <input type="text" id="navigator-start-input" class="navigator-input-field" placeholder="Choose starting point, or click on the map" aria-label="Starting point">
+                <span class="navigator-input-icon-end" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+              </div>
+
+              <div class="navigator-input-wrap">
+                <input type="text" id="navigator-dest-input" class="navigator-input-field" placeholder="Choose destination..." aria-label="Destination">
+                <span class="navigator-input-icon-end" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#ea4335">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <button class="navigator-swap-btn" id="navigator-swap-btn" aria-label="Reverse starting point and destination" title="Swap Origin & Destination">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <polyline points="17 14 12 9 7 14"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Quick Locations List -->
+          <div class="navigator-locations-section" role="region" aria-label="Suggested Delhi NCR Locations">
+            <button class="navigator-location-item" data-name="Your location" data-lat="28.6139" data-lng="77.2090">
+              <div class="navigator-item-icon target">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Your location</span>
+                </div>
+                <span class="navigator-item-subtext">GPS Live Position</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Connaught Place" data-lat="28.6315" data-lng="77.2167">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Connaught Place</span>
+                </div>
+                <span class="navigator-item-subtext">Central Delhi</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="ITO Central Intersection" data-lat="28.6300" data-lng="77.2400">
+              <div class="navigator-item-icon saved">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">ITO Central Intersection</span>
+                  <span class="navigator-aqi-badge severe" id="nav-ito-aqi-badge">AQI 312 · Severe</span>
+                </div>
+                <span class="navigator-item-subtext">Saved in Favorites</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Anand Vihar" data-lat="28.6469" data-lng="77.3160">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Anand Vihar</span>
+                </div>
+                <span class="navigator-item-subtext">East Delhi ISBT</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Dwarka Sector 21" data-lat="28.5520" data-lng="77.0580">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Dwarka Sector 21</span>
+                </div>
+                <span class="navigator-item-subtext">Delhi NCR</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Dynamic Route Result Card -->
+          <div id="navigator-route-summary-card" class="navigator-route-summary-card" style="display: none;">
+            <div class="nav-summary-header">
+              <span class="nav-summary-badge">🍃 LOW-EXPOSURE ROUTE</span>
+              <span class="nav-summary-time" id="nav-summary-time">~24 mins</span>
+            </div>
+            <div class="nav-summary-stats">
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">Distance</span>
+                <span class="nav-stat-val" id="nav-summary-dist">14.2 km</span>
+              </div>
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">Avg Exposure</span>
+                <span class="nav-stat-val" id="nav-summary-aqi" style="color: #10B981;">AQI 185</span>
+              </div>
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">PM2.5 Saved</span>
+                <span class="nav-stat-val" style="color: #38BDF8;">-35% Exposure</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer / Action -->
+          <div class="navigator-footer">
+            <div class="navigator-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>Click on map or list to set points</span>
+            </div>
+            <button class="navigator-route-btn" id="navigator-calc-route-btn">
+              <span>Calculate Route</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Side: Dedicated Map Container -->
+        <div class="navigator-map-pane">
+          <!-- Floating Map Bar -->
+          <div class="navigator-map-floating-bar">
+            <div class="nav-map-btn-group">
+              <button type="button" class="nav-map-mode-btn" id="nav-map-light-btn" title="Clean Light Canvas">
+                <span>☀️</span> Light
+              </button>
+              <button type="button" class="nav-map-mode-btn active" id="nav-map-sat-btn" title="Satellite Base View">
+                <span>🛰️</span> Satellite
+              </button>
+              <button type="button" class="nav-map-mode-btn" id="nav-map-dark-btn" title="Dark Telemetry Canvas">
+                <span>🌑</span> Dark
+              </button>
+            </div>
+            <button type="button" class="nav-map-mode-btn" id="nav-map-recenter-btn" title="Recenter on Delhi NCR">
+              <span>📍</span> Center Delhi
+            </button>
+          </div>
+
+          <!-- Dedicated Leaflet Map Canvas for Navigator -->
+          <div id="navigator-leaflet-map" class="navigator-leaflet-map"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript App -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

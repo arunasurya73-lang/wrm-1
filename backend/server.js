@@ -3,19 +3,21 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { getStations, getStationDetails } from './backend/controllers/stationController.js';
-import { getForecast } from './backend/controllers/forecastController.js';
-import { getHotspots } from './backend/controllers/hotspotController.js';
-import { getHealth } from './backend/controllers/healthController.js';
-import { handleIngest } from './backend/controllers/ingestController.js';
-import { handleChat } from './backend/controllers/chatController.js';
+import { getStations, getStationDetails } from './controllers/stationController.js';
+import { getForecast } from './controllers/forecastController.js';
+import { getHotspots } from './controllers/hotspotController.js';
+import { getHealth } from './controllers/healthController.js';
+import { handleIngest } from './controllers/ingestController.js';
+import { handleChat } from './controllers/chatController.js';
+import { enhanceResponse } from './utils/responseHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const rootDir = path.join(__dirname, '..');
 
 // Automatic Environment Loading
 try {
-  const envPath = path.join(__dirname, '.env');
+  const envPath = path.join(rootDir, '.env');
   if (fs.existsSync(envPath) && process.loadEnvFile) {
     process.loadEnvFile(envPath);
     console.log('🔑 Environment variables loaded from .env');
@@ -38,21 +40,6 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.webp': 'image/webp'
 };
-
-function enhanceResponse(res) {
-  if (!res.status) {
-    res.status = function(code) {
-      res.statusCode = code;
-      return res;
-    };
-  }
-  if (!res.json) {
-    res.json = function(data) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(JSON.stringify(data, null, 2));
-    };
-  }
-}
 
 async function handler(req, res) {
   enhanceResponse(res);
@@ -99,8 +86,8 @@ async function handler(req, res) {
     return await handleChat(req, res);
   }
 
-  // Static File Serving
-  let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
+  // Static File Serving from public/
+  let filePath = path.join(rootDir, 'public', pathname === '/' ? 'index.html' : pathname);
 
   try {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
@@ -111,7 +98,7 @@ async function handler(req, res) {
     }
 
     // Client-side fallback to index.html
-    const indexPath = path.join(__dirname, 'public', 'index.html');
+    const indexPath = path.join(rootDir, 'public', 'index.html');
     if (fs.existsSync(indexPath)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return fs.createReadStream(indexPath).pipe(res);

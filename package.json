@@ -4,9 +4,8 @@
   "description": "Next-generation Delhi NCR air quality index forecasting, real-time pollutant telemetry, satellite farm fire smoke tracking, and localized health advisories.",
   "type": "module",
   "scripts": {
-    "start": "node backend.js",
-    "dev": "node backend.js",
-    "build": "echo 'Static build ready'"
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
   },
   "keywords": [
     "air-quality",

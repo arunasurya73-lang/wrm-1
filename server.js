@@ -1,1 +1,3 @@
-import './backend.js';
+import handler from './backend.js';
+
+export default handler;

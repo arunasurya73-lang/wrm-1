@@ -1,20 +1,5 @@
 import { handleChat } from '../backend/controllers/chatController.js';
-
-function enhanceResponse(res) {
-  if (!res.status) {
-    res.status = function(code) {
-      res.statusCode = code;
-      return res;
-    };
-  }
-  if (!res.json) {
-    res.json = function(data) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(JSON.stringify(data, null, 2));
-      return res;
-    };
-  }
-}
+import { enhanceResponse } from '../backend/utils/responseHelper.js';
 
 export default async function handler(req, res) {
   enhanceResponse(res);

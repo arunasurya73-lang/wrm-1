@@ -138,3 +138,5 @@ if (!process.env.VERCEL && !process.env.NOW_REGION) {
     console.log(`   - POST /api/ingest`);
   });
 }
+
+export default handler;

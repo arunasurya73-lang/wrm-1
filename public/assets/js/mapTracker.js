@@ -46,42 +46,42 @@ export class MapTracker {
 
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // High-Resolution World Basemaps
+    // High-Resolution Watermark-Free World Basemaps
     this.baseLayers = {
-      satellite: L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          attribution: '&copy; Esri, Maxar, Earthstar Geographics',
-          maxZoom: 18
-        }
-      ),
-      dark: L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-        {
-          attribution: '&copy; Esri &copy; OpenStreetMap',
-          maxZoom: 16
-        }
-      ),
-      streets: L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 18
-        }
-      )
+      satellite: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, Maxar, Earthstar Geographics', maxZoom: 18 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 18 }
+        )
+      ]),
+      dark: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap', maxZoom: 16 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 16 }
+        )
+      ]),
+      streets: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap', maxZoom: 16 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 16 }
+        )
+      ])
     };
 
-    // Satellite overlay labels for city, country and borders
-    this.satelliteLabels = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 18 }
-    );
-
-    // Initial basemap: High-Res World Satellite View
+    // Initial basemap
     this.baseLayers[this.currentBaseLayerType].addTo(this.map);
-    if (this.currentBaseLayerType === 'satellite') {
-      this.satelliteLabels.addTo(this.map);
-    }
 
     // Initialize Route Planner instance on map
     this.routePlanner = new CleanAirRoutePlanner(this.map);
@@ -195,15 +195,17 @@ export class MapTracker {
   }
 
   switchBaseMap(type) {
-    if (type === this.currentBaseLayerType) return;
-    this.map.removeLayer(this.baseLayers[this.currentBaseLayerType]);
-    if (this.map.hasLayer(this.satelliteLabels)) this.map.removeLayer(this.satelliteLabels);
+    if (!this.baseLayers || !this.baseLayers[type]) return;
+    if (type === this.currentBaseLayerType && this.map.hasLayer(this.baseLayers[type])) return;
+
+    Object.keys(this.baseLayers).forEach(key => {
+      if (this.map.hasLayer(this.baseLayers[key])) {
+        this.map.removeLayer(this.baseLayers[key]);
+      }
+    });
 
     this.currentBaseLayerType = type;
     this.baseLayers[type].addTo(this.map);
-    if (type === 'satellite') {
-      this.satelliteLabels.addTo(this.map);
-    }
 
     document.getElementById('map-mode-satellite')?.classList.toggle('active', type === 'satellite');
     document.getElementById('map-mode-dark')?.classList.toggle('active', type === 'dark');
@@ -216,7 +218,7 @@ export class MapTracker {
   }
 
   // ==========================================
-  // Realistic AQI Spatial Interpolation Halos
+  // Subtle Atmospheric AQI Dispersion Glow
   // ==========================================
   renderAQIHeatHalos() {
     if (this.heatHaloLayer) this.heatHaloLayer.remove();
@@ -225,22 +227,22 @@ export class MapTracker {
     STATIONS.forEach(station => {
       const info = getAQIInfo(station.aqi);
       const isGlobal = station.region === 'Global';
-      const radiusMeters = isGlobal ? Math.max(30000, station.aqi * 450) : Math.max(4000, Math.min(9000, station.aqi * 22));
+      const radiusMeters = isGlobal ? Math.max(15000, station.aqi * 200) : Math.max(1800, Math.min(3800, station.aqi * 9));
 
-      // Atmospheric dispersion halo
+      // Delicate, low-density translucent dispersion halo
       const outerHalo = L.circle([station.lat, station.lng], {
         radius: radiusMeters,
         color: 'transparent',
         fillColor: info.color,
-        fillOpacity: 0.14,
+        fillOpacity: 0.035,
         interactive: false
       });
 
       const coreHalo = L.circle([station.lat, station.lng], {
-        radius: radiusMeters * 0.45,
+        radius: radiusMeters * 0.4,
         color: 'transparent',
         fillColor: info.color,
-        fillOpacity: 0.28,
+        fillOpacity: 0.07,
         interactive: false
       });
 

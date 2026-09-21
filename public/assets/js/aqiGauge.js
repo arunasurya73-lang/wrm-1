@@ -18,11 +18,21 @@ export class AQIGauge {
   setupCanvas() {
     if (!this.canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const rect = this.canvas.getBoundingClientRect();
-    this.width = rect.width || 280;
-    this.height = rect.height || 200;
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
+    const parent = this.canvas.parentElement;
+    const rect = parent ? parent.getBoundingClientRect() : null;
+    
+    // Constrain logical dimensions to container or standard 280x180
+    this.width = rect && rect.width > 50 ? Math.min(320, Math.round(rect.width)) : 280;
+    this.height = 180;
+
+    // Fix CSS style dimensions to prevent layout recalculation explosion
+    this.canvas.style.width = `${this.width}px`;
+    this.canvas.style.height = `${this.height}px`;
+
+    // HiDPI backing buffer
+    this.canvas.width = Math.round(this.width * dpr);
+    this.canvas.height = Math.round(this.height * dpr);
+
     if (this.ctx.resetTransform) {
       this.ctx.resetTransform();
     } else {
@@ -60,11 +70,12 @@ export class AQIGauge {
   }
 
   draw() {
+    if (!this.canvas || !this.ctx) return;
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
     const centerX = w / 2;
-    const centerY = h - 25;
+    const centerY = h - 35;
     const radius = Math.min(centerX - 24, centerY - 20);
 
     ctx.clearRect(0, 0, w, h);
@@ -85,12 +96,11 @@ export class AQIGauge {
     const progress = Math.min(1, Math.max(0, this.currentAQI / 500));
     const currentAngle = startAngle + (totalAngle * progress);
 
-    if (progress > 0.01) {
-      // Glow effect
+    if (progress > 0.005) {
       const aqiInfo = getAQIInfo(this.currentAQI);
       ctx.save();
       ctx.shadowColor = aqiInfo.color;
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 16;
 
       // Dynamic Gradient Arc
       const gradient = ctx.createConicGradient(startAngle, centerX, centerY);
@@ -115,7 +125,7 @@ export class AQIGauge {
     ticks.forEach(tick => {
       const tickProgress = tick / 500;
       const angle = startAngle + (totalAngle * tickProgress);
-      const innerR = radius - 16;
+      const innerR = radius - 15;
       const outerR = radius - 9;
 
       const x1 = centerX + Math.cos(angle) * innerR;
@@ -137,19 +147,20 @@ export class AQIGauge {
     ctx.rotate(currentAngle);
 
     // Needle shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 6;
 
     ctx.beginPath();
-    ctx.moveTo(0, -3);
+    ctx.moveTo(-6, -2);
     ctx.lineTo(radius - 12, 0);
-    ctx.lineTo(0, 3);
+    ctx.lineTo(-6, 2);
+    ctx.closePath();
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
 
     // Center pivot circle
     ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
     ctx.fillStyle = getAQIInfo(this.currentAQI).color;
     ctx.fill();
     ctx.lineWidth = 2;

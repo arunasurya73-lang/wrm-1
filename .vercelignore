@@ -1,6 +1,4 @@
-# Ignore backend files so Vercel only deploys the static frontend
-backend.js
-api/
-backend/
+# Local and non-essential deployment files
+.env
 render.yaml
 requirements.txt

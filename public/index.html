@@ -156,6 +156,14 @@
             <span>Advices</span>
             <span class="pill-badge pill-badge-blue">Health</span>
           </button>
+
+          <button id="btn-navigator" class="nav-action-pill" title="Delhi NCR Low-AQI Clean Route Navigator">
+            <svg class="pill-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <span>Navigator</span>
+            <span class="pill-badge pill-badge-blue">Route</span>
+          </button>
         </div>
       </div>
     </header>
@@ -272,7 +280,7 @@
 
         <!-- Gauge Canvas & AQI Value -->
         <div class="gauge-container">
-          <canvas id="aqi-gauge-canvas" width="280" height="200"></canvas>
+          <canvas id="aqi-gauge-canvas" width="280" height="180"></canvas>
           <div class="gauge-center-text">
             <span class="gauge-aqi-value" id="current-aqi-val">382</span>
             <span class="gauge-status-badge" id="current-aqi-status" style="background: rgba(239, 68, 68, 0.2); color: #EF4444;">Severe</span>
@@ -1159,6 +1167,250 @@
       </div>
       <div class="ai-disclaimer">AirSense AI synthesizes real-time sensor & meteorological telemetry for advisory insights.</div>
     </form>
+  </div>
+
+  <!-- Navigator Google Maps-Style Modal Dialog with Dedicated Map -->
+  <div class="navigator-overlay" id="navigator-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="navigator-dialog-title">
+    <div class="navigator-popup navigator-popup-split" id="navigator-popup-container" tabindex="-1">
+      
+      <!-- Top Header -->
+      <div class="navigator-header">
+        <h2 id="navigator-dialog-title" class="navigator-header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+          </svg>
+          <span>Delhi NCR Clean-Air Route Navigator</span>
+        </h2>
+        <div class="navigator-header-right">
+          <span class="navigator-live-chip">LIVE TELEMETRY MAP</span>
+          <button class="navigator-close-btn" id="close-navigator-modal" aria-label="Close route planner" title="Close (Esc)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Split Container: Controls on Left, Dedicated Map on Right -->
+      <div class="navigator-split-body">
+        
+        <!-- Left Sidebar: Controls & Locations -->
+        <div class="navigator-sidebar-pane">
+          <!-- Travel Modes Bar -->
+          <div class="navigator-modes-bar" role="tablist" aria-label="Travel Modes">
+            <button class="navigator-mode-btn" data-mode="directions" title="Route" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+              <span>Route</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="drive" title="Drive" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="8" rx="2" /><path d="M5 11l2-5h10l2 5" /><circle cx="7.5" cy="15.5" r="1.5" /><circle cx="16.5" cy="15.5" r="1.5" /></svg>
+              <span>Drive</span>
+            </button>
+            <button class="navigator-mode-btn active" data-mode="motorbike" title="Two-Wheeler" role="tab" aria-selected="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="5" cy="16" r="3" /><circle cx="19" cy="16" r="3" /><path d="M12 16h3l3-7h-4l-3 4-2-1" /><line x1="8" y1="9" x2="10" y2="9" /></svg>
+              <span>Motorbike</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="transit" title="Transit" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="15" rx="2" /><path d="M4 11h16M8 15h.01M16 15h.01M6 18l-2 3M18 18l2 3" /></svg>
+              <span>Transit</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="walk" title="Walk" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="13" cy="4" r="2" /><path d="M9 20l3-6 2 3 3 5M12 10l-2 4 4 2M15 10l-3-2-3 2" /></svg>
+              <span>Walk</span>
+            </button>
+            <button class="navigator-mode-btn" data-mode="cycle" title="Cycle" role="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="18.5" cy="17.5" r="3.5" /><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 11l3-4h3l3 4.5M12 17.5V11" /></svg>
+              <span>Cycle</span>
+            </button>
+          </div>
+
+          <!-- Inputs Section -->
+          <div class="navigator-inputs-section">
+            <div class="navigator-inputs-track" aria-hidden="true">
+              <div class="start-dot"></div>
+              <div class="track-dots"></div>
+              <div class="dest-pin-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="navigator-inputs-fields">
+              <div class="navigator-input-wrap">
+                <input type="text" id="navigator-start-input" class="navigator-input-field" placeholder="Choose starting point, or click on the map" aria-label="Starting point">
+                <span class="navigator-input-icon-end" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+              </div>
+
+              <div class="navigator-input-wrap">
+                <input type="text" id="navigator-dest-input" class="navigator-input-field" placeholder="Choose destination..." aria-label="Destination">
+                <span class="navigator-input-icon-end" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#ea4335">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <button class="navigator-swap-btn" id="navigator-swap-btn" aria-label="Reverse starting point and destination" title="Swap Origin & Destination">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <polyline points="17 14 12 9 7 14"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Quick Locations List -->
+          <div class="navigator-locations-section" role="region" aria-label="Suggested Delhi NCR Locations">
+            <button class="navigator-location-item" data-name="Your location" data-lat="28.6139" data-lng="77.2090">
+              <div class="navigator-item-icon target">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Your location</span>
+                </div>
+                <span class="navigator-item-subtext">GPS Live Position</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Connaught Place" data-lat="28.6315" data-lng="77.2167">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Connaught Place</span>
+                </div>
+                <span class="navigator-item-subtext">Central Delhi</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="ITO Central Intersection" data-lat="28.6300" data-lng="77.2400">
+              <div class="navigator-item-icon saved">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">ITO Central Intersection</span>
+                  <span class="navigator-aqi-badge severe" id="nav-ito-aqi-badge">AQI 312 · Severe</span>
+                </div>
+                <span class="navigator-item-subtext">Saved in Favorites</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Anand Vihar" data-lat="28.6469" data-lng="77.3160">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Anand Vihar</span>
+                </div>
+                <span class="navigator-item-subtext">East Delhi ISBT</span>
+              </div>
+            </button>
+
+            <button class="navigator-location-item" data-name="Dwarka Sector 21" data-lat="28.5520" data-lng="77.0580">
+              <div class="navigator-item-icon recent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div class="navigator-item-content">
+                <div class="navigator-item-title-row">
+                  <span class="navigator-item-name">Dwarka Sector 21</span>
+                </div>
+                <span class="navigator-item-subtext">Delhi NCR</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Dynamic Route Result Card -->
+          <div id="navigator-route-summary-card" class="navigator-route-summary-card" style="display: none;">
+            <div class="nav-summary-header">
+              <span class="nav-summary-badge">🍃 LOW-EXPOSURE ROUTE</span>
+              <span class="nav-summary-time" id="nav-summary-time">~24 mins</span>
+            </div>
+            <div class="nav-summary-stats">
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">Distance</span>
+                <span class="nav-stat-val" id="nav-summary-dist">14.2 km</span>
+              </div>
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">Avg Exposure</span>
+                <span class="nav-stat-val" id="nav-summary-aqi" style="color: #10B981;">AQI 185</span>
+              </div>
+              <div class="nav-stat-item">
+                <span class="nav-stat-lbl">PM2.5 Saved</span>
+                <span class="nav-stat-val" style="color: #38BDF8;">-35% Exposure</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer / Action -->
+          <div class="navigator-footer">
+            <div class="navigator-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>Click on map or list to set points</span>
+            </div>
+            <button class="navigator-route-btn" id="navigator-calc-route-btn">
+              <span>Calculate Route</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Side: Dedicated Map Container -->
+        <div class="navigator-map-pane">
+          <!-- Floating Map Bar -->
+          <div class="navigator-map-floating-bar">
+            <div class="nav-map-btn-group">
+              <button type="button" class="nav-map-mode-btn" id="nav-map-light-btn" title="Clean Light Canvas">
+                <span>☀️</span> Light
+              </button>
+              <button type="button" class="nav-map-mode-btn active" id="nav-map-sat-btn" title="Satellite Base View">
+                <span>🛰️</span> Satellite
+              </button>
+              <button type="button" class="nav-map-mode-btn" id="nav-map-dark-btn" title="Dark Telemetry Canvas">
+                <span>🌑</span> Dark
+              </button>
+            </div>
+            <button type="button" class="nav-map-mode-btn" id="nav-map-recenter-btn" title="Recenter on Delhi NCR">
+              <span>📍</span> Center Delhi
+            </button>
+          </div>
+
+          <!-- Dedicated Leaflet Map Canvas for Navigator -->
+          <div id="navigator-leaflet-map" class="navigator-leaflet-map"></div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- Main JavaScript App -->

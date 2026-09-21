@@ -3,7 +3,7 @@
 // WebGL-inspired 2D Physics Particle Simulation
 // ==========================================
 
-const PARTICLE_DENSITY = 0.00014; // Main interactive particles density
+const PARTICLE_DENSITY = 0.00012; // Main interactive particles density
 const BG_PARTICLE_DENSITY = 0.000045; // Ambient drifting stars/dust density
 const MOUSE_RADIUS = 180; // Radius of mouse influence
 const RETURN_SPEED = 0.075; // Spring constant (return to origin)
@@ -22,25 +22,46 @@ export class AntiGravityBackground {
     this.particles = [];
     this.bgParticles = [];
     this.mouse = { x: -1000, y: -1000, isActive: false };
-    this.frameId = 0;
+    this.frameId = null;
     this.lastTime = 0;
     this.width = 0;
     this.height = 0;
     this.isDarkTheme = true;
+    this.prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.observer = null;
 
     this.init();
   }
 
   init() {
-    this.handleThemeChange();
+    this.handleThemeChange(false);
     this.handleResize();
     this.attachEvents();
-    this.animate(0);
+    if (this.frameId) cancelAnimationFrame(this.frameId);
+    this.lastTime = performance.now();
+    this.frameId = requestAnimationFrame((t) => this.animate(t));
   }
 
-  handleThemeChange() {
+  handleThemeChange(recolorExisting = true) {
     const isLight = document.documentElement.classList.contains('light');
     this.isDarkTheme = !isLight;
+
+    if (recolorExisting && this.particles.length > 0) {
+      this.updateColorsOnly();
+    }
+  }
+
+  updateColorsOnly() {
+    const isLight = !this.isDarkTheme;
+    const accentColors = isLight 
+      ? ['#3B82F6', '#06B6D4', '#10B981', '#6366F1', '#475569']
+      : ['#4285F4', '#60A5FA', '#34D399', '#38BDF8', '#FFFFFF'];
+
+    this.particles.forEach((p) => {
+      p.color = Math.random() > 0.85 
+        ? accentColors[Math.floor(Math.random() * (accentColors.length - 1))] 
+        : (isLight ? '#64748B' : '#FFFFFF');
+    });
   }
 
   initParticles(w, h) {
@@ -48,7 +69,7 @@ export class AntiGravityBackground {
     this.height = h;
 
     // 1. Main Interactive Physics Particles
-    const particleCount = Math.min(240, Math.floor(w * h * PARTICLE_DENSITY));
+    const particleCount = Math.min(220, Math.max(40, Math.floor(w * h * PARTICLE_DENSITY)));
     const newParticles = [];
 
     const isLight = !this.isDarkTheme;
@@ -78,7 +99,7 @@ export class AntiGravityBackground {
     this.particles = newParticles;
 
     // 2. Ambient Drifting Background Particles (Stars/Dust)
-    const bgCount = Math.min(80, Math.floor(w * h * BG_PARTICLE_DENSITY));
+    const bgCount = Math.min(75, Math.max(20, Math.floor(w * h * BG_PARTICLE_DENSITY)));
     const newBg = [];
 
     for (let i = 0; i < bgCount; i++) {
@@ -115,42 +136,51 @@ export class AntiGravityBackground {
   }
 
   attachEvents() {
-    window.addEventListener('resize', () => this.handleResize());
+    this._onResize = () => this.handleResize();
+    window.addEventListener('resize', this._onResize);
 
     // Track mouse on entire window for responsive anti-gravity field
-    window.addEventListener('mousemove', (e) => {
+    this._onMouseMove = (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.mouse.isActive = true;
-    });
+    };
+    window.addEventListener('mousemove', this._onMouseMove, { passive: true });
 
-    window.addEventListener('mouseleave', () => {
+    this._onMouseLeave = () => {
       this.mouse.isActive = false;
-    });
+    };
+    window.addEventListener('mouseleave', this._onMouseLeave);
 
     // Touch support for mobile devices
-    window.addEventListener('touchmove', (e) => {
+    this._onTouchMove = (e) => {
       if (e.touches && e.touches.length > 0) {
         this.mouse.x = e.touches[0].clientX;
         this.mouse.y = e.touches[0].clientY;
         this.mouse.isActive = true;
       }
-    }, { passive: true });
+    };
+    window.addEventListener('touchmove', this._onTouchMove, { passive: true });
 
-    window.addEventListener('touchend', () => {
+    this._onTouchEnd = () => {
       this.mouse.isActive = false;
-    });
+    };
+    window.addEventListener('touchend', this._onTouchEnd);
 
-    // Observe theme switch
-    const observer = new MutationObserver(() => {
-      this.handleThemeChange();
-      this.initParticles(this.width, this.height);
+    // Observe theme switch without regenerating particle positions
+    this.observer = new MutationObserver(() => {
+      this.handleThemeChange(true);
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-weather'] });
+    this.observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-weather'] });
   }
 
   animate(time) {
     if (!this.ctx || !this.canvas) return;
+
+    // Calculate delta time normalized to ~60fps (16.67ms)
+    const dt = Math.min(Math.max((time - (this.lastTime || time)) / 16.67, 0.5), 3.0);
+    this.lastTime = time;
+
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
@@ -158,7 +188,7 @@ export class AntiGravityBackground {
     // Clear Canvas
     ctx.clearRect(0, 0, w, h);
 
-    // --- Background Ambient Effects ---
+    // --- Background Ambient Glow Effects ---
     const centerX = w / 2;
     const centerY = h / 2;
     const pulseSpeed = 0.0008;
@@ -184,8 +214,8 @@ export class AntiGravityBackground {
 
     for (let i = 0; i < this.bgParticles.length; i++) {
       const p = this.bgParticles[i];
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
 
       // Screen wrapping
       if (p.x < 0) p.x = w;
@@ -207,50 +237,51 @@ export class AntiGravityBackground {
     // --- Main Foreground Anti-Gravity Physics ---
     const particles = this.particles;
     const mouse = this.mouse;
+    const pLen = particles.length;
 
     // Phase 1: Apply Mouse Repulsion & Spring Return Forces
-    for (let i = 0; i < particles.length; i++) {
+    for (let i = 0; i < pLen; i++) {
       const p = particles[i];
 
       // 1. Distance to cursor
       const dx = mouse.x - p.x;
       const dy = mouse.y - p.y;
-      const distance = Math.hypot(dx, dy);
+      const distSq = dx * dx + dy * dy;
+      const mouseRadiusSq = MOUSE_RADIUS * MOUSE_RADIUS;
 
       // 2. Mouse Anti-Gravity Repulsion Force
-      if (mouse.isActive && distance < MOUSE_RADIUS && distance > 0.001) {
+      if (mouse.isActive && distSq < mouseRadiusSq && distSq > 0.01) {
+        const distance = Math.sqrt(distSq);
         const forceDirectionX = dx / distance;
         const forceDirectionY = dy / distance;
         const force = (MOUSE_RADIUS - distance) / MOUSE_RADIUS;
-        const repulsion = force * REPULSION_STRENGTH;
+        const repulsion = force * REPULSION_STRENGTH * (this.prefersReducedMotion ? 0.3 : 1);
 
-        p.vx -= forceDirectionX * repulsion * 5;
-        p.vy -= forceDirectionY * repulsion * 5;
+        p.vx -= forceDirectionX * repulsion * 5 * dt;
+        p.vy -= forceDirectionY * repulsion * 5 * dt;
       }
 
       // 3. Spring Force to Return to Origin
       const springDx = p.originX - p.x;
       const springDy = p.originY - p.y;
-      p.vx += springDx * RETURN_SPEED;
-      p.vy += springDy * RETURN_SPEED;
+      p.vx += springDx * RETURN_SPEED * dt;
+      p.vy += springDy * RETURN_SPEED * dt;
     }
 
-    // Phase 2: Resolve Elastic Collisions Between Particles
-    const pLen = particles.length;
+    // Phase 2: Localized Elastic Particle Interactions
     for (let i = 0; i < pLen; i++) {
+      const p1 = particles[i];
       for (let j = i + 1; j < pLen; j++) {
-        const p1 = particles[i];
         const p2 = particles[j];
 
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
-        const distSq = dx * dx + dy * dy;
         const minDist = p1.size + p2.size;
 
-        if (distSq < minDist * minDist) {
-          const dist = Math.sqrt(distSq);
-
-          if (dist > 0.01) {
+        if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) {
+          const distSq = dx * dx + dy * dy;
+          if (distSq < minDist * minDist && distSq > 0.001) {
+            const dist = Math.sqrt(distSq);
             const nx = dx / dist;
             const ny = dy / dist;
 
@@ -289,14 +320,15 @@ export class AntiGravityBackground {
     }
 
     // Phase 3: Integration, Velocity Damping & Drawing
+    const dampingFactor = Math.pow(DAMPING, dt);
     for (let i = 0; i < pLen; i++) {
       const p = particles[i];
 
-      p.vx *= DAMPING;
-      p.vy *= DAMPING;
+      p.vx *= dampingFactor;
+      p.vy *= dampingFactor;
 
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
 
       const velocity = Math.hypot(p.vx, p.vy);
       const opacity = Math.min(0.35 + velocity * 0.12, 1);
@@ -316,5 +348,21 @@ export class AntiGravityBackground {
     }
 
     this.frameId = requestAnimationFrame((t) => this.animate(t));
+  }
+
+  destroy() {
+    if (this.frameId) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+    if (this._onResize) window.removeEventListener('resize', this._onResize);
+    if (this._onMouseMove) window.removeEventListener('mousemove', this._onMouseMove);
+    if (this._onMouseLeave) window.removeEventListener('mouseleave', this._onMouseLeave);
+    if (this._onTouchMove) window.removeEventListener('touchmove', this._onTouchMove);
+    if (this._onTouchEnd) window.removeEventListener('touchend', this._onTouchEnd);
   }
 }

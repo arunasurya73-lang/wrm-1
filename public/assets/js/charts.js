@@ -47,8 +47,11 @@ export class ForecastCharts {
     const trendData = generate72HourTrend(station.aqi, station.pm25, station.pm10, profileData);
     const ctx = canvas.getContext('2d');
     const isDark = !document.documentElement.classList.contains('light');
-    const textColor = isDark ? '#94A3B8' : '#64748B';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#F8FAFC' : '#0F172A';
+    const textMuted = isDark ? '#94A3B8' : '#475569';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+    const maxPollutantVal = Math.max(100, ...trendData.pm10, ...trendData.pm25);
+    const suggestedYMax = Math.ceil((maxPollutantVal * 1.12) / 20) * 20;
 
     // In-place update to prevent remounting, glitching and flickering
     if (this.chart72hMulti) {
@@ -61,9 +64,11 @@ export class ForecastCharts {
       this.chart72hMulti.options.plugins.legend.labels.color = textColor;
       this.chart72hMulti.options.scales.x.grid.color = gridColor;
       this.chart72hMulti.options.scales.x.ticks.color = textColor;
+      this.chart72hMulti.options.scales.x.title.color = textColor;
       this.chart72hMulti.options.scales.y.grid.color = gridColor;
       this.chart72hMulti.options.scales.y.ticks.color = textColor;
       this.chart72hMulti.options.scales.y.title.color = textColor;
+      this.chart72hMulti.options.scales.y.suggestedMax = suggestedYMax;
 
       this.chart72hMulti.update('none');
       return;
@@ -73,37 +78,38 @@ export class ForecastCharts {
       {
         label: 'PM2.5 (µg/m³)',
         data: trendData.pm25,
-        borderColor: '#A855F7',
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-        borderWidth: 2.2,
+        borderColor: '#9333EA',
+        backgroundColor: 'rgba(147, 51, 234, 0.12)',
+        borderWidth: 2.6,
         fill: true,
         tension: 0.35,
         pointRadius: 0,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#A855F7'
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#9333EA'
       },
       {
         label: 'PM10 (µg/m³)',
         data: trendData.pm10,
-        borderColor: '#38BDF8',
+        borderColor: '#0284C7',
         backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderDash: [4, 4],
+        borderWidth: 2.4,
+        borderDash: [5, 4],
         tension: 0.35,
         pointRadius: 0,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#38BDF8'
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#0284C7'
       },
       {
         label: 'Stubble Smoke Share (%)',
         data: trendData.stubble,
-        borderColor: '#EF4444',
+        borderColor: '#DC2626',
         backgroundColor: 'transparent',
-        borderWidth: 2,
-        tension: 0.3,
+        borderWidth: 2.6,
+        tension: 0.32,
         yAxisID: 'y1',
         pointRadius: 0,
-        pointHoverRadius: 5
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#DC2626'
       }
     ];
 
@@ -116,9 +122,10 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 0
+        layout: {
+          padding: { left: 4, right: 8, top: 4, bottom: 6 }
         },
+        animation: { duration: 0 },
         interaction: {
           mode: 'index',
           intersect: false
@@ -129,15 +136,17 @@ export class ForecastCharts {
             labels: {
               color: textColor,
               usePointStyle: true,
-              boxWidth: 8,
-              font: { family: 'Inter', size: 11 }
+              boxWidth: 9,
+              boxHeight: 9,
+              padding: 14,
+              font: { family: 'Inter', size: 12, weight: '700' }
             }
           },
           tooltip: {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
             titleColor: isDark ? '#F8FAFC' : '#0F172A',
-            bodyColor: isDark ? '#CBD5E1' : '#334155',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            bodyColor: isDark ? '#E2E8F0' : '#1E293B',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
             borderWidth: 1,
             padding: 12,
             boxPadding: 6,
@@ -162,24 +171,56 @@ export class ForecastCharts {
             ticks: {
               color: textColor,
               maxRotation: 0,
-              font: { family: 'Inter', size: 10 },
-              maxTicksLimit: 10
+              autoSkip: true,
+              maxTicksLimit: 7,
+              padding: 8,
+              font: { family: 'Inter', size: 11, weight: '600' }
+            },
+            title: {
+              display: true,
+              text: 'Forecast Timeline (Next 72 Hours)',
+              color: textMuted,
+              font: { family: 'Inter', size: 11, weight: '600' },
+              padding: { top: 6 }
             }
           },
           y: {
+            position: 'left',
+            beginAtZero: true,
+            suggestedMax: suggestedYMax,
             grid: { color: gridColor },
-            ticks: { color: textColor, font: { family: 'Inter', size: 11 } },
-            title: { display: true, text: 'Particulate Concentration (µg/m³)', color: textColor, font: { size: 11 } }
+            ticks: {
+              color: textColor,
+              padding: 8,
+              font: { family: 'Inter', size: 11, weight: '700' }
+            },
+            title: {
+              display: true,
+              text: 'Particulate (µg/m³)',
+              color: textColor,
+              font: { family: 'Inter', size: 11.5, weight: '700' },
+              padding: { bottom: 6 }
+            }
           },
           y1: {
             position: 'right',
+            min: 0,
+            max: 50,
             grid: { drawOnChartArea: false },
             ticks: {
-              color: '#EF4444',
+              color: isDark ? '#F87171' : '#DC2626',
+              stepSize: 10,
+              padding: 8,
               callback: (val) => val + '%',
-              font: { family: 'Inter', size: 10 }
+              font: { family: 'Inter', size: 11, weight: '700' }
             },
-            title: { display: true, text: 'Smoke Share %', color: '#EF4444', font: { size: 10 } }
+            title: {
+              display: true,
+              text: 'Smoke Share (%)',
+              color: isDark ? '#F87171' : '#DC2626',
+              font: { family: 'Inter', size: 11.5, weight: '700' },
+              padding: { bottom: 6 }
+            }
           }
         }
       }
@@ -194,8 +235,9 @@ export class ForecastCharts {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const isDark = !document.documentElement.classList.contains('light');
-    const textColor = isDark ? '#94A3B8' : '#64748B';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#F8FAFC' : '#0F172A';
+    const textMuted = isDark ? '#94A3B8' : '#475569';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
 
     const count = 72;
     const labels = [];
@@ -208,10 +250,9 @@ export class ForecastCharts {
     for (let i = 0; i < count; i++) {
       const t = new Date(now.getTime() + i * 3600 * 1000);
       const hour = t.getHours();
-      // Sampling every 3 hours for cleaner x-axis labels
-      const labelStr = (i % 6 === 0 || i === 0) 
-        ? `${t.toLocaleDateString('en-IN', { weekday: 'short' })} ${hour.toString().padStart(2, '0')}:00`
-        : `${hour.toString().padStart(2, '0')}:00`;
+      const hourStr = `${hour.toString().padStart(2, '0')}:00`;
+      const dayStr = t.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+      const labelStr = (i % 6 === 0 || i === 0) ? [hourStr, dayStr] : [hourStr, ''];
       labels.push(labelStr);
 
       const invVal = (profileData && profileData.inversionIndices && profileData.inversionIndices[i] !== undefined)
@@ -252,6 +293,7 @@ export class ForecastCharts {
       this.chart7d.options.plugins.legend.labels.color = textColor;
       this.chart7d.options.scales.x.grid.color = gridColor;
       this.chart7d.options.scales.x.ticks.color = textColor;
+      this.chart7d.options.scales.x.title.color = textColor;
       this.chart7d.options.scales.y.grid.color = gridColor;
       this.chart7d.options.scales.y.ticks.color = textColor;
       this.chart7d.options.scales.y.title.color = textColor;
@@ -269,8 +311,8 @@ export class ForecastCharts {
             type: 'bar',
             label: 'Confidence Envelope (Min - Max)',
             data: confidenceRanges,
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.88)',
-            borderColor: '#CCCCCC',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(226, 232, 240, 0.85)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.4)' : '#CBD5E1',
             borderWidth: 1.2,
             borderRadius: 2,
             grouped: false,
@@ -282,8 +324,8 @@ export class ForecastCharts {
             type: 'bar',
             label: 'Projected AQI Mean',
             data: meanAqi,
-            backgroundColor: '#FF9933', // Saffron
-            borderColor: '#FF9933',
+            backgroundColor: '#F97316',
+            borderColor: '#EA580C',
             borderWidth: 1,
             borderRadius: 2,
             grouped: false,
@@ -295,14 +337,14 @@ export class ForecastCharts {
             type: 'line',
             label: 'Inversion ΔT (°C)',
             data: invData,
-            borderColor: '#138808', // Green
+            borderColor: '#16A34A',
             backgroundColor: 'transparent',
-            borderWidth: 2,
+            borderWidth: 2.2,
             borderDash: [4, 4],
             tension: 0.35,
             yAxisID: 'y1',
-            pointRadius: (ctx) => (ctx.dataIndex % 6 === 0 ? 3 : 0),
-            pointBackgroundColor: '#138808',
+            pointRadius: (c) => (c.dataIndex % 6 === 0 ? 3 : 0),
+            pointBackgroundColor: '#16A34A',
             order: 0
           }
         ]
@@ -310,22 +352,23 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 0
+        layout: {
+          padding: { left: 4, right: 8, top: 4, bottom: 6 }
         },
+        animation: { duration: 0 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 8, boxHeight: 8 }
+            labels: { color: textColor, font: { family: 'Inter', size: 12, weight: '700' }, usePointStyle: true, boxWidth: 9, boxHeight: 9, padding: 14 }
           },
           tooltip: {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
             titleColor: isDark ? '#F8FAFC' : '#0F172A',
-            bodyColor: isDark ? '#CBD5E1' : '#334155',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            bodyColor: isDark ? '#E2E8F0' : '#1E293B',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
             borderWidth: 1,
-            padding: 10,
+            padding: 12,
             callbacks: {
               label: (context) => {
                 if (context.datasetIndex === 0) {
@@ -351,21 +394,22 @@ export class ForecastCharts {
         scales: {
           x: {
             grid: { color: gridColor },
-            ticks: { color: textColor, maxTicksLimit: 12, maxRotation: 0, font: { family: 'Inter', size: 10.5 } }
+            ticks: { color: textColor, maxTicksLimit: 7, maxRotation: 0, padding: 8, font: { family: 'Inter', size: 11, weight: '600' } },
+            title: { display: true, text: 'Forecast Timeline (Next 72 Hours)', color: textMuted, font: { family: 'Inter', size: 11, weight: '600' }, padding: { top: 6 } }
           },
           y: {
             position: 'left',
             grid: { color: gridColor },
-            ticks: { color: textColor, font: { family: 'Inter', size: 10.5 } },
-            title: { display: true, text: 'Coupled 72h AQI Level', color: textColor, font: { size: 10.5 } },
+            ticks: { color: textColor, stepSize: 100, padding: 8, font: { family: 'Inter', size: 11, weight: '700' } },
+            title: { display: true, text: 'Coupled 72h AQI Level', color: textColor, font: { family: 'Inter', size: 11.5, weight: '700' }, padding: { bottom: 6 } },
             min: 0,
             max: 500
           },
           y1: {
             position: 'right',
             grid: { drawOnChartArea: false },
-            ticks: { color: '#138808', callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { size: 10 } },
-            title: { display: true, text: '850hPa - 2m ΔT', color: '#138808', font: { size: 10 } }
+            ticks: { color: isDark ? '#34D399' : '#16A34A', padding: 8, callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { family: 'Inter', size: 11, weight: '700' } },
+            title: { display: true, text: 'Inversion ΔT (°C)', color: isDark ? '#34D399' : '#16A34A', font: { family: 'Inter', size: 11.5, weight: '700' }, padding: { bottom: 6 } }
           }
         }
       }
@@ -380,8 +424,9 @@ export class ForecastCharts {
     if (!canvas || !profileData) return;
     const ctx = canvas.getContext('2d');
     const isDark = !document.documentElement.classList.contains('light');
-    const textColor = isDark ? '#94A3B8' : '#64748B';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#F8FAFC' : '#0F172A';
+    const textMuted = isDark ? '#94A3B8' : '#475569';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
 
     const count = Math.min(72, profileData.labels.length);
     const pblData = profileData.pblHeights.slice(0, count);
@@ -403,6 +448,7 @@ export class ForecastCharts {
       this.chartPbl.options.plugins.legend.labels.color = textColor;
       this.chartPbl.options.scales.x.grid.color = gridColor;
       this.chartPbl.options.scales.x.ticks.color = textColor;
+      this.chartPbl.options.scales.x.title.color = textColor;
       this.chartPbl.options.scales.y.grid.color = gridColor;
       this.chartPbl.options.scales.y.ticks.color = textColor;
       this.chartPbl.options.scales.y.title.color = textColor;
@@ -419,19 +465,19 @@ export class ForecastCharts {
           {
             label: 'Boundary Layer Height (PBL)',
             data: pblData,
-            borderColor: '#06B6D4',
+            borderColor: '#0284C7',
             backgroundColor: pblGradient,
-            borderWidth: 2.2,
+            borderWidth: 2.4,
             fill: true,
             tension: 0.35,
             pointRadius: (c) => (c.dataIndex % 6 === 0 ? 3 : 0),
-            pointBackgroundColor: '#06B6D4'
+            pointBackgroundColor: '#0284C7'
           },
           {
             label: 'Trapping Risk Threshold (500m)',
             data: thresholdData,
-            borderColor: '#EF4444',
-            borderWidth: 1.8,
+            borderColor: '#DC2626',
+            borderWidth: 2,
             borderDash: [5, 4],
             pointRadius: 0,
             fill: false
@@ -439,8 +485,8 @@ export class ForecastCharts {
           {
             label: 'Inversion Index (850hPa - 2m ΔT)',
             data: invData,
-            borderColor: '#F59E0B',
-            borderWidth: 1.6,
+            borderColor: '#D97706',
+            borderWidth: 2,
             borderDash: [3, 3],
             yAxisID: 'y1',
             pointRadius: 0,
@@ -451,22 +497,23 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 0
+        layout: {
+          padding: { left: 4, right: 8, top: 4, bottom: 6 }
         },
+        animation: { duration: 0 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 6 }
+            labels: { color: textColor, font: { family: 'Inter', size: 12, weight: '700' }, usePointStyle: true, boxWidth: 8, padding: 14 }
           },
           tooltip: {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
             titleColor: isDark ? '#F8FAFC' : '#0F172A',
-            bodyColor: isDark ? '#CBD5E1' : '#334155',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            bodyColor: isDark ? '#E2E8F0' : '#1E293B',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
             borderWidth: 1,
-            padding: 10,
+            padding: 12,
             callbacks: {
               label: (context) => {
                 if (context.datasetIndex === 0) {
@@ -484,19 +531,21 @@ export class ForecastCharts {
         scales: {
           x: {
             grid: { color: gridColor },
-            ticks: { color: textColor, maxTicksLimit: 12, maxRotation: 0, font: { family: 'Inter', size: 10.5 } }
+            ticks: { color: textColor, maxTicksLimit: 7, maxRotation: 0, padding: 8, font: { family: 'Inter', size: 11, weight: '600' } },
+            title: { display: true, text: 'Forecast Timeline (Next 72 Hours)', color: textMuted, font: { family: 'Inter', size: 11, weight: '600' }, padding: { top: 6 } }
           },
           y: {
+            position: 'left',
             grid: { color: gridColor },
-            ticks: { color: textColor, callback: (v) => `${v}m`, font: { family: 'Inter', size: 10.5 } },
-            title: { display: true, text: 'Planetary Boundary Layer (PBL)', color: textColor, font: { size: 10.5 } },
+            ticks: { color: textColor, padding: 8, callback: (v) => `${v}m`, font: { family: 'Inter', size: 11, weight: '700' } },
+            title: { display: true, text: 'Boundary Layer Height (m)', color: textColor, font: { family: 'Inter', size: 11.5, weight: '700' }, padding: { bottom: 6 } },
             min: 0
           },
           y1: {
             position: 'right',
             grid: { drawOnChartArea: false },
-            ticks: { color: '#F59E0B', callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { size: 10 } },
-            title: { display: true, text: 'Inversion ΔT', color: '#F59E0B', font: { size: 10 } }
+            ticks: { color: isDark ? '#FBBF24' : '#D97706', padding: 8, callback: (v) => `${v > 0 ? '+' : ''}${v}°C`, font: { family: 'Inter', size: 11, weight: '700' } },
+            title: { display: true, text: 'Inversion Index (°C)', color: isDark ? '#FBBF24' : '#D97706', font: { family: 'Inter', size: 11.5, weight: '700' }, padding: { bottom: 6 } }
           }
         }
       }
@@ -511,8 +560,8 @@ export class ForecastCharts {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const isDark = !document.documentElement.classList.contains('light');
-    const textColor = isDark ? '#94A3B8' : '#64748B';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const textColor = isDark ? '#F8FAFC' : '#0F172A';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
 
     // Normalized against safe standard baseline (100 = safety limit)
     const normPm25 = Math.min(500, Math.round((station.pm25 / 60) * 100));
@@ -542,18 +591,18 @@ export class ForecastCharts {
           {
             label: `${station.name} Severity Ratio`,
             data: [normPm25, normPm10, normNo2, normSo2, normCo, normO3],
-            backgroundColor: 'rgba(239, 68, 68, 0.35)',
-            borderColor: '#EF4444',
-            borderWidth: 2,
-            pointBackgroundColor: '#EF4444',
-            pointRadius: 3
+            backgroundColor: 'rgba(220, 38, 38, 0.35)',
+            borderColor: '#DC2626',
+            borderWidth: 2.2,
+            pointBackgroundColor: '#DC2626',
+            pointRadius: 4
           },
           {
             label: 'WHO Safe Standard (100%)',
             data: [100, 100, 100, 100, 100, 100],
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            borderColor: '#10B981',
-            borderWidth: 1.5,
+            backgroundColor: 'rgba(22, 163, 74, 0.15)',
+            borderColor: '#16A34A',
+            borderWidth: 2,
             borderDash: [4, 4],
             pointRadius: 0
           }
@@ -562,20 +611,18 @@ export class ForecastCharts {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 0
-        },
+        animation: { duration: 0 },
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true }
+            labels: { color: textColor, font: { family: 'Inter', size: 12, weight: '700' }, usePointStyle: true, padding: 14 }
           }
         },
         scales: {
           r: {
             angleLines: { color: gridColor },
             grid: { color: gridColor },
-            pointLabels: { color: textColor, font: { family: 'Inter', size: 10, weight: 600 } },
+            pointLabels: { color: textColor, font: { family: 'Inter', size: 11, weight: '700' } },
             ticks: { display: false }
           }
         }

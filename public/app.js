@@ -1,5 +1,5 @@
 import { STATIONS, getAQIInfo, AQI_LEVELS, STUBBLE_FIRE_HOTSPOTS } from './assets/js/stationData.js';
-import { ROUTE_HUBS } from './assets/js/routePlanner.js';
+import { ROUTE_HUBS, CleanAirRoutePlanner } from './assets/js/routePlanner.js';
 import { AQIGauge } from './assets/js/aqiGauge.js';
 import { MapTracker } from './assets/js/mapTracker.js';
 import { ForecastCharts } from './assets/js/charts.js';
@@ -146,6 +146,7 @@ class AirSenseApp {
 
     const isDarkTheme = themeName !== 'light';
     if (this.map) this.map.updateTileTheme(isDarkTheme);
+    this.updateNavigatorMapTheme(isDarkTheme);
     if (this.charts) {
       const station = this.stations.find(s => s.id === this.currentStationId);
       if (station) this.charts.updateCharts(station, this.currentAtmosphericProfile);
@@ -338,11 +339,200 @@ class AirSenseApp {
         calcBtn.disabled = false;
         calcBtn.innerHTML = `
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
           </svg>
-          Find Clean Route
+          <span>Find Clean Route</span>
         `;
       }
+    }
+  }
+
+  // ==========================================
+  // Dedicated Navigator Modal Leaflet Map
+  // ==========================================
+  initNavigatorModalMap() {
+    if (!window.L) return;
+    const mapEl = document.getElementById('navigator-leaflet-map');
+    if (!mapEl || this.navigatorMap) return;
+
+    this.navigatorMap = L.map('navigator-leaflet-map', {
+      center: [28.6139, 77.2090],
+      zoom: 11,
+      minZoom: 3,
+      maxZoom: 18,
+      zoomControl: false
+    });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(this.navigatorMap);
+
+    this.navBaseLayers = {
+      light: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap contributors', maxZoom: 16 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 16 }
+        )
+      ]),
+      satellite: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, Maxar, Earthstar Geographics', maxZoom: 18 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 18 }
+        )
+      ]),
+      dark: L.layerGroup([
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          { attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap contributors', maxZoom: 16 }
+        ),
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 16 }
+        )
+      ])
+    };
+
+    // Pick appropriate base layer based on current theme
+    const initialLayer = this.currentTheme === 'light' ? 'light' : 'satellite';
+    this.switchNavBaseMap(initialLayer);
+
+    const lightBtn = document.getElementById('nav-map-light-btn');
+    const satBtn = document.getElementById('nav-map-sat-btn');
+    const darkBtn = document.getElementById('nav-map-dark-btn');
+    const recenterBtn = document.getElementById('nav-map-recenter-btn');
+
+    if (lightBtn) lightBtn.addEventListener('click', () => this.switchNavBaseMap('light'));
+    if (satBtn) satBtn.addEventListener('click', () => this.switchNavBaseMap('satellite'));
+    if (darkBtn) darkBtn.addEventListener('click', () => this.switchNavBaseMap('dark'));
+
+    if (recenterBtn) {
+      recenterBtn.addEventListener('click', () => {
+        this.navigatorMap.flyTo([28.6139, 77.2090], 11, { duration: 1 });
+      });
+    }
+
+    // Render Station Markers on Navigator Map
+    this.renderNavigatorStationMarkers();
+
+    // Initialize dedicated route planner for navigator map
+    this.navigatorRoutePlanner = new CleanAirRoutePlanner(this.navigatorMap);
+  }
+
+  switchNavBaseMap(type) {
+    if (!this.navigatorMap || !this.navBaseLayers || !this.navBaseLayers[type]) return;
+
+    Object.keys(this.navBaseLayers).forEach(key => {
+      if (this.navigatorMap.hasLayer(this.navBaseLayers[key])) {
+        this.navigatorMap.removeLayer(this.navBaseLayers[key]);
+      }
+    });
+
+    this.navBaseLayers[type].addTo(this.navigatorMap);
+    this.navCurrentBaseLayer = type;
+
+    document.getElementById('nav-map-light-btn')?.classList.toggle('active', type === 'light');
+    document.getElementById('nav-map-sat-btn')?.classList.toggle('active', type === 'satellite');
+    document.getElementById('nav-map-dark-btn')?.classList.toggle('active', type === 'dark');
+  }
+
+  updateNavigatorMapTheme(isDark) {
+    if (!this.navigatorMap) return;
+    if (this.navCurrentBaseLayer !== 'satellite') {
+      this.switchNavBaseMap(isDark ? 'dark' : 'light');
+    }
+  }
+
+  renderNavigatorStationMarkers() {
+    if (!this.navigatorMap) return;
+
+    this.stations.forEach(station => {
+      if (!station.lat || !station.lng) return;
+      const aqiInfo = getAQIInfo(station.aqi);
+
+      const customIcon = L.divIcon({
+        className: 'custom-station-pin',
+        html: `
+          <div class="station-pin-marker" style="--pin-color: ${aqiInfo.color}; width: 28px; height: 28px;">
+            <div class="pin-pulse" style="background-color: ${aqiInfo.color}"></div>
+            <div class="pin-inner-badge" style="background-color: ${aqiInfo.color}">
+              <span class="pin-aqi-num" style="font-size: 0.65rem;">${station.aqi}</span>
+            </div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14]
+      });
+
+      const marker = L.marker([station.lat, station.lng], { icon: customIcon }).addTo(this.navigatorMap);
+
+      marker.bindPopup(`
+        <div style="font-family: 'Inter', sans-serif; padding: 4px;">
+          <strong style="font-size: 0.88rem; color: #0f172a;">${station.name}</strong><br>
+          <span style="display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 0.72rem; background: ${aqiInfo.color}22; color: ${aqiInfo.color}; border: 1px solid ${aqiInfo.color}44;">
+            AQI ${station.aqi} • ${aqiInfo.label}
+          </span>
+          <p style="font-size: 0.75rem; margin: 4px 0 0 0; color: #64748b;">PM2.5: ${station.pm25} µg/m³</p>
+        </div>
+      `);
+
+      marker.on('click', () => {
+        const startInput = document.getElementById('navigator-start-input');
+        const destInput = document.getElementById('navigator-dest-input');
+        if (startInput && (!startInput.value || document.activeElement === startInput)) {
+          startInput.value = station.name;
+        } else if (destInput) {
+          destInput.value = station.name;
+        }
+        this.calculateAndDrawNavigatorRoute();
+      });
+    });
+  }
+
+  async calculateAndDrawNavigatorRoute() {
+    if (!this.navigatorRoutePlanner || !this.navigatorMap) return;
+
+    const startVal = document.getElementById('navigator-start-input')?.value || 'Connaught Place';
+    const destVal = document.getElementById('navigator-dest-input')?.value || 'ITO Central Intersection';
+
+    const findHub = (name) => {
+      const q = name.toLowerCase();
+      const station = this.stations.find(s => s.name.toLowerCase().includes(q) || q.includes(s.name.toLowerCase()));
+      if (station) return { id: station.id, name: station.name, lat: station.lat, lng: station.lng };
+      const hub = ROUTE_HUBS.find(h => h.name.toLowerCase().includes(q) || q.includes(h.name.toLowerCase()) || h.id.includes(q));
+      if (hub) return hub;
+      return null;
+    };
+
+    const originHub = findHub(startVal) || ROUTE_HUBS[0];
+    const destHub = findHub(destVal) || ROUTE_HUBS[4];
+
+    try {
+      const routes = await this.navigatorRoutePlanner.calculateRoutes(originHub, destHub);
+      if (routes && routes.length > 0) {
+        this.navigatorRoutePlanner.renderRoutesOnMap(routes, 0);
+
+        const card = document.getElementById('navigator-route-summary-card');
+        const timeEl = document.getElementById('nav-summary-time');
+        const distEl = document.getElementById('nav-summary-dist');
+        const aqiEl = document.getElementById('nav-summary-aqi');
+
+        if (card) card.style.display = 'block';
+        if (timeEl) timeEl.textContent = `~${routes[0].estimatedTimeMin || 24} mins`;
+        if (distEl) distEl.textContent = `${routes[0].distanceKm || 14.2} km`;
+        if (aqiEl) {
+          aqiEl.textContent = `AQI ${routes[0].avgAqi || 185}`;
+          aqiEl.style.color = routes[0].avgAqi > 250 ? '#EF4444' : '#10B981';
+        }
+      }
+    } catch (err) {
+      console.warn('Navigator route calculate error:', err);
     }
   }
 
@@ -513,6 +703,134 @@ class AirSenseApp {
     if (closeAdvicesBtn && advicesModal) {
       closeAdvicesBtn.addEventListener('click', () => {
         advicesModal.style.display = 'none';
+      });
+    }
+
+    // Navigator Route Planner Modal Setup with Dedicated Interactive Map
+    const navigatorBtn = document.getElementById('btn-navigator');
+    const navigatorModal = document.getElementById('navigator-modal');
+    const closeNavigatorBtn = document.getElementById('close-navigator-modal');
+    const navStartInput = document.getElementById('navigator-start-input');
+    const navDestInput = document.getElementById('navigator-dest-input');
+    const navSwapBtn = document.getElementById('navigator-swap-btn');
+    const navModeBtns = document.querySelectorAll('.navigator-mode-btn');
+    const navLocationItems = document.querySelectorAll('.navigator-location-item');
+    const navCalcRouteBtn = document.getElementById('navigator-calc-route-btn');
+
+    let activeNavInput = 'start';
+    let navSelectedOrigin = ROUTE_HUBS[0]; // CP default
+    let navSelectedDest = ROUTE_HUBS[4];   // Noida Sec 62 default
+
+    if (navigatorBtn && navigatorModal) {
+      navigatorBtn.addEventListener('click', () => {
+        navigatorModal.style.display = 'flex';
+        // Initialize the dedicated Navigator Leaflet Map on first open
+        this.initNavigatorModalMap();
+        setTimeout(() => {
+          if (this.navigatorMap) {
+            this.navigatorMap.invalidateSize();
+          }
+          if (navStartInput && !navStartInput.value) {
+            navStartInput.value = 'Connaught Place';
+          }
+          if (navDestInput && !navDestInput.value) {
+            navDestInput.value = 'ITO Central Intersection';
+          }
+          this.calculateAndDrawNavigatorRoute();
+          if (navStartInput) navStartInput.focus();
+        }, 150);
+      });
+    }
+
+    const closeNavigator = () => {
+      if (navigatorModal) navigatorModal.style.display = 'none';
+      if (navigatorBtn) navigatorBtn.focus();
+    };
+
+    if (closeNavigatorBtn) {
+      closeNavigatorBtn.addEventListener('click', closeNavigator);
+    }
+
+    if (navigatorModal) {
+      navigatorModal.addEventListener('click', (e) => {
+        if (e.target === navigatorModal) closeNavigator();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && navigatorModal.style.display === 'flex') {
+          closeNavigator();
+        }
+      });
+    }
+
+    if (navStartInput) {
+      navStartInput.addEventListener('focus', () => { activeNavInput = 'start'; });
+    }
+    if (navDestInput) {
+      navDestInput.addEventListener('focus', () => { activeNavInput = 'dest'; });
+    }
+
+    if (navSwapBtn && navStartInput && navDestInput) {
+      navSwapBtn.addEventListener('click', () => {
+        const temp = navStartInput.value;
+        navStartInput.value = navDestInput.value;
+        navDestInput.value = temp;
+
+        const tempHub = navSelectedOrigin;
+        navSelectedOrigin = navSelectedDest;
+        navSelectedDest = tempHub;
+
+        this.calculateAndDrawNavigatorRoute();
+      });
+    }
+
+    if (navModeBtns.length > 0) {
+      navModeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          navModeBtns.forEach(b => {
+            b.classList.remove('active');
+            b.removeAttribute('aria-selected');
+          });
+          btn.classList.add('active');
+          btn.setAttribute('aria-selected', 'true');
+          this.calculateAndDrawNavigatorRoute();
+        });
+      });
+    }
+
+    if (navLocationItems.length > 0) {
+      navLocationItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const name = item.dataset.name || item.querySelector('.navigator-item-name')?.textContent;
+          const lat = parseFloat(item.dataset.lat);
+          const lng = parseFloat(item.dataset.lng);
+          if (!name) return;
+
+          const locationHub = {
+            id: name.toLowerCase().replace(/\s+/g, '-'),
+            name: name,
+            lat: !isNaN(lat) ? lat : 28.6315,
+            lng: !isNaN(lng) ? lng : 77.2167
+          };
+
+          if (activeNavInput === 'start' && navStartInput) {
+            navStartInput.value = name;
+            navSelectedOrigin = locationHub;
+            activeNavInput = 'dest';
+            if (navDestInput) navDestInput.focus();
+          } else if (navDestInput) {
+            navDestInput.value = name;
+            navSelectedDest = locationHub;
+          }
+
+          this.calculateAndDrawNavigatorRoute();
+        });
+      });
+    }
+
+    if (navCalcRouteBtn) {
+      navCalcRouteBtn.addEventListener('click', () => {
+        this.calculateAndDrawNavigatorRoute();
       });
     }
 

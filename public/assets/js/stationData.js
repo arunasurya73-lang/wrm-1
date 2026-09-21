@@ -667,9 +667,10 @@ export function generate72HourTrend(baseAqi, basePm25 = null, basePm10 = null, p
   for (let i = 0; i < 72; i++) {
     const time = new Date(now.getTime() + i * 3600 * 1000);
     const hour = time.getHours();
-    const hourLabel = (i % 6 === 0 || i === 0) 
-      ? `${time.toLocaleDateString('en-IN', { weekday: 'short' })} ${hour.toString().padStart(2, '0')}:00`
-      : `${hour.toString().padStart(2, '0')}:00`;
+    const hourStr = `${hour.toString().padStart(2, '0')}:00`;
+    const dayStr = time.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+    // Clean multi-line label: Hour on top, Day name beneath
+    const hourLabel = (i % 6 === 0 || i === 0) ? [hourStr, dayStr] : [hourStr, ''];
     labels.push(hourLabel);
 
     let diurnal = 1.0;
@@ -685,7 +686,7 @@ export function generate72HourTrend(baseAqi, basePm25 = null, basePm10 = null, p
     const projectedAqi = Math.round(Math.max(25, Math.min(490, (baseAqi * diurnal * 0.92) + invImpact + Math.sin(i / 3) * 6)));
     const projectedPm25 = Math.round(Math.max(15, (pm25Val * diurnal * 0.92) + (invImpact * 0.8) + Math.sin(i / 3) * 5));
     const projectedPm10 = Math.round(Math.max(25, (pm10Val * diurnal * 0.92) + (invImpact * 1.1) + Math.sin(i / 3) * 7));
-    const stubbleShare = Math.round(Math.max(0, Math.min(55, (baseAqi > 250 ? 30 : 8) + (inv > 0 ? 8 : -4) + Math.sin(i / 4) * 6)));
+    const stubbleShare = Math.round(Math.max(0, Math.min(50, (baseAqi > 250 ? 28 : 8) + (inv > 0 ? 8 : -4) + Math.sin(i / 4) * 6)));
 
     aqiData.push(projectedAqi);
     pm25Data.push(projectedPm25);

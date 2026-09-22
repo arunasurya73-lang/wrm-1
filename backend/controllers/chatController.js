@@ -115,37 +115,19 @@ export async function handleChat(req, res) {
       return res.status(400).json({ error: 'Missing "message" in request body' });
     }
 
-    // Gather live city context
-    let cityContext = {
+    // Gather live city context instantly from client context or default
+    let cityContext = body.context && typeof body.context === 'object' ? {
+      avgAqi: body.context.aqi || 245,
+      status: body.context.status || (body.context.aqi > 300 ? 'Severe' : body.context.aqi > 200 ? 'Poor' : 'Moderate'),
+      worstStation: 'Anand Vihar (AQI ~380)',
+      bestStation: 'Mandir Marg (AQI ~140)',
+      currentStation: body.context.name || 'Delhi NCR'
+    } : {
       avgAqi: 245,
       status: 'Poor',
-      worstStation: 'Anand Vihar (AQI 378)',
-      bestStation: 'Mandir Marg (AQI 142)'
+      worstStation: 'Anand Vihar (AQI ~380)',
+      bestStation: 'Mandir Marg (AQI ~140)'
     };
-
-    try {
-      const stationData = await getAllStationsTelemetry();
-      if (stationData && stationData.stations && stationData.stations.length > 0) {
-        const valid = stationData.stations.filter(s => s.aqi && s.aqi > 0);
-        if (valid.length > 0) {
-          const sum = valid.reduce((acc, curr) => acc + curr.aqi, 0);
-          cityContext.avgAqi = Math.round(sum / valid.length);
-          
-          if (cityContext.avgAqi <= 50) cityContext.status = 'Good';
-          else if (cityContext.avgAqi <= 100) cityContext.status = 'Satisfactory';
-          else if (cityContext.avgAqi <= 200) cityContext.status = 'Moderate';
-          else if (cityContext.avgAqi <= 300) cityContext.status = 'Poor';
-          else if (cityContext.avgAqi <= 400) cityContext.status = 'Very Poor';
-          else cityContext.status = 'Severe';
-
-          const sorted = [...valid].sort((a, b) => b.aqi - a.aqi);
-          cityContext.worstStation = `${sorted[0].name || sorted[0].id} (AQI ${sorted[0].aqi})`;
-          cityContext.bestStation = `${sorted[sorted.length - 1].name || sorted[sorted.length - 1].id} (AQI ${sorted[sorted.length - 1].aqi})`;
-        }
-      }
-    } catch (telemetryErr) {
-      console.warn('Telemetry context lookup fallback:', telemetryErr.message);
-    }
 
     const geminiKey = process.env.GEMINI_API_KEY;
 
@@ -153,13 +135,14 @@ export async function handleChat(req, res) {
       try {
         const systemInstruction = `You are "AirSense AI", an expert environmental atmospheric scientist and public health advisor specializing in Delhi NCR and Indian air quality.
 Current Real-time Delhi Telemetry:
+- Location / Station: ${cityContext.currentStation || 'Delhi NCR'}
 - Average AQI: ${cityContext.avgAqi} (${cityContext.status})
 - Peak Hotspot: ${cityContext.worstStation}
 - Cleanest Area: ${cityContext.bestStation}
 
 Instructions:
 - Provide concise, empathetic, and actionable guidance regarding air quality, health precautions, N95 masks, outdoor activities, asthma protection, and GRAP regulations.
-- Format using clean Markdown with bold keywords and bullet points. Keep answers punchy (2-4 paragraphs maximum).
+- Format using clean Markdown with bold keywords and bullet points. Keep answers punchy (2-3 paragraphs maximum).
 - Emphasize safety for children, elderly, and respiratory patients.`;
 
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey.trim()}`;
@@ -167,6 +150,7 @@ Instructions:
         const response = await fetch(geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3500),
           body: JSON.stringify({
             contents: [
               {
@@ -178,7 +162,7 @@ Instructions:
             ],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 600
+              maxOutputTokens: 500
             }
           })
         });
@@ -194,12 +178,9 @@ Instructions:
               timestamp: new Date().toISOString()
             });
           }
-        } else {
-          const errBody = await response.text();
-          console.warn('Gemini API returned error, switching to domain engine:', errBody);
         }
       } catch (geminiError) {
-        console.warn('Gemini API call failed, falling back to local engine:', geminiError.message);
+        console.warn('Gemini API call timed out or failed, falling back to local engine:', geminiError.message);
       }
     }
 

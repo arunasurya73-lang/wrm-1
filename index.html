@@ -21,7 +21,13 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Application Styles -->
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=2.5">
+  <style>
+    header.navbar, #main-nav, .navbar {
+      position: relative !important;
+      top: auto !important;
+    }
+  </style>
 </head>
 <body>
   <!-- Weather-Reactive Atmospheric Cloud & Sky Backdrop -->
@@ -365,6 +371,69 @@
           <div class="weather-box">
             <span class="weather-lbl">Visibility</span>
             <span class="weather-val" id="weather-visibility">1.2 km</span>
+          </div>
+        </div>
+
+        <!-- Live Health Impact & Clean Air Window Intelligence Card -->
+        <div class="health-impact-widget" id="health-impact-widget">
+          <div class="health-impact-header">
+            <div class="health-impact-title-wrap">
+              <span class="health-impact-icon">🫁</span>
+              <div>
+                <h3 class="health-impact-title">Air Inhalation & Health Impact</h3>
+                <span class="health-impact-subtitle">Live PM2.5 Toxicity & Clean Activity Window</span>
+              </div>
+            </div>
+            <span class="pulse-badge" id="health-impact-pulse" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #EF4444; font-size: 0.68rem; padding: 2px 7px;">
+              <span class="pulse-dot" id="health-impact-dot" style="background-color: #EF4444;"></span>
+              <span id="health-impact-tag">HIGH EXPOSURE</span>
+            </span>
+          </div>
+
+          <!-- Cigarette Equivalence Highlight Bar -->
+          <div class="cigarette-equiv-card">
+            <div class="cigarette-equiv-info">
+              <span class="cigarette-equiv-lbl">Daily Toxicity Equivalence</span>
+              <div class="cigarette-equiv-val-wrap">
+                <span class="cigarette-equiv-val" id="cigarette-count">~8.4</span>
+                <span class="cigarette-equiv-unit">Cigarettes / 24h</span>
+              </div>
+            </div>
+            <div class="cigarette-equiv-badge" title="Equivalent PM2.5 lung burden compared to smoking (Berkeley Earth standard: 22 µg/m³ PM2.5 = 1 cig/day)">
+              🚬 Berkeley Metric
+            </div>
+          </div>
+
+          <!-- Cleanest Outdoor Window & Vulnerability Stats -->
+          <div class="health-impact-grid">
+            <div class="health-impact-item">
+              <div class="health-impact-item-header">
+                <span class="impact-item-icon">⏰</span>
+                <span class="impact-item-lbl">Best Outdoor Window</span>
+              </div>
+              <div class="impact-item-val" id="clean-window-val">2:00 PM – 4:30 PM</div>
+              <span class="impact-item-sub">Peak Solar PBL Dispersion</span>
+            </div>
+
+            <div class="health-impact-item">
+              <div class="health-impact-item-header">
+                <span class="impact-item-icon">🛡️</span>
+                <span class="impact-item-lbl">Sensitive Group Risk</span>
+              </div>
+              <div class="impact-item-val" id="sensitive-risk-val" style="color: #EF4444;">High Alert</div>
+              <span class="impact-item-sub">Pediatric & Senior Precaution</span>
+            </div>
+          </div>
+
+          <!-- Lung Exposure & Respiratory Risk Meter -->
+          <div class="respiratory-meter-wrap">
+            <div class="respiratory-meter-header">
+              <span>Respiratory Burden Index</span>
+              <span id="respiratory-pct-val" style="font-weight: 700; color: #EF4444;">84% Critical</span>
+            </div>
+            <div class="respiratory-progress-track">
+              <div class="respiratory-progress-bar" id="respiratory-progress-bar" style="width: 84%; background: linear-gradient(90deg, #F59E0B, #EF4444);"></div>
+            </div>
           </div>
         </div>
       </section>

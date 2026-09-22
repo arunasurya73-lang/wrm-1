@@ -111,7 +111,7 @@ class APIClient {
     return await this.request('/api/chat', {
       method: 'POST',
       body: JSON.stringify({ message, context })
-    }, 1, 8000);
+    }, 1, 3500);
   }
 }
 

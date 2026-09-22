@@ -228,23 +228,23 @@ export class CleanAirRoutePlanner {
     // Draw all routes (non-selected in muted tone, selected with high glow)
     routes.forEach((route, idx) => {
       const isSelected = idx === selectedIndex;
-      const routeColor = route.isCleanest ? '#10B981' : '#F59E0B';
+      const routeColor = isSelected ? '#F59E0B' : '#64748B';
 
       // 1. Background glow polyline
       const glowPoly = L.polyline(route.coordinates, {
-        color: isSelected ? routeColor : '#64748B',
+        color: isSelected ? '#F97316' : '#64748B',
         weight: isSelected ? 8 : 4,
-        opacity: isSelected ? 0.45 : 0.25,
+        opacity: isSelected ? 0.55 : 0.25,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(this.map);
 
       // 2. Main route polyline
       const mainPoly = L.polyline(route.coordinates, {
-        color: isSelected ? (route.isCleanest ? '#06B6D4' : '#EF4444') : '#94A3B8',
+        color: isSelected ? '#F59E0B' : '#94A3B8',
         weight: isSelected ? 5 : 3,
-        opacity: isSelected ? 0.95 : 0.6,
-        dashArray: isSelected ? (route.isCleanest ? '8, 4' : null) : '4, 6',
+        opacity: isSelected ? 1.0 : 0.6,
+        dashArray: isSelected ? null : '5, 6',
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(this.map);

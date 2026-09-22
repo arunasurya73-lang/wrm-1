@@ -506,14 +506,17 @@ html.light.weather-night .cloud-mass {
 }
 
 /* Header & Navbar */
-.navbar {
-  position: sticky;
-  top: 1rem;
+.navbar,
+header.navbar,
+#main-nav {
+  position: relative !important;
+  top: auto !important;
   z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
   padding: 0.95rem 1.5rem;
+  margin-top: 1rem;
   background: var(--bg-card);
   backdrop-filter: blur(var(--blur-amount));
   -webkit-backdrop-filter: blur(var(--blur-amount));
@@ -1201,6 +1204,201 @@ html.light .glass-card:hover {
   font-weight: 600;
   color: var(--text-primary);
   margin-top: 0.2rem;
+}
+
+/* Live Health Impact & Clean Air Window Intelligence Widget */
+.health-impact-widget {
+  width: 100%;
+  margin-top: 1.4rem;
+  padding: 1.15rem 1rem;
+  background: var(--bg-input, rgba(30, 41, 59, 0.6));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+  animation: motionScaleFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}
+
+.health-impact-widget:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.health-impact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.health-impact-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: left;
+}
+
+.health-impact-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.health-impact-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.health-impact-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+/* Cigarette Equivalence Highlight Card */
+.cigarette-equiv-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.95rem;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(249, 115, 22, 0.08) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm, 10px);
+}
+
+.cigarette-equiv-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.cigarette-equiv-lbl {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cigarette-equiv-val-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 2px;
+}
+
+.cigarette-equiv-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #EF4444;
+  line-height: 1;
+}
+
+.cigarette-equiv-unit {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cigarette-equiv-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+/* Cleanest Outdoor Window & Vulnerability Stats */
+.health-impact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.health-impact-item {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+html.light .health-impact-item {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.health-impact-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.impact-item-icon {
+  font-size: 0.9rem;
+}
+
+.impact-item-lbl {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.impact-item-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 1px;
+}
+
+.impact-item-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* Respiratory Burden Index Progress Bar */
+.respiratory-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  margin-top: 2px;
+}
+
+.respiratory-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.respiratory-progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+html.light .respiratory-progress-track {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.respiratory-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
 }
 
 /* Map Section */
@@ -5528,6 +5726,198 @@ html.light .navigator-footer {
     min-height: 250px;
   }
 }
+
+/* ==========================================================================
+   Comprehensive Framer Motion & Shadcn UI Animation and Visual System
+   ========================================================================== */
+
+/* Keyframe Animations */
+@keyframes motionFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motionScaleFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes motionSlideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes motionBounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  70% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmerPulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+  }
+}
+
+/* 1. Global Staggered Container & Component Entrances */
+.navbar {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.stubble-banner {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.forecast-scrubber-card,
+.scrubber-panel {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+}
+
+.hero-aqi-card {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+}
+
+.map-card {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.38s both;
+}
+
+.campaign-grid,
+.awareness-campaign-section {
+  animation: motionFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.44s both;
+}
+
+.forecast-chart-item {
+  animation: motionScaleFade 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.forecast-chart-item:nth-child(1) { animation-delay: 0.28s; }
+.forecast-chart-item:nth-child(2) { animation-delay: 0.35s; }
+.forecast-chart-item:nth-child(3) { animation-delay: 0.42s; }
+
+/* 2. Staggered Child Items: Health Advisories */
+.advisory-card {
+  animation: motionScaleFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.advisory-card:nth-child(1) { animation-delay: 0.34s; }
+.advisory-card:nth-child(2) { animation-delay: 0.40s; }
+.advisory-card:nth-child(3) { animation-delay: 0.46s; }
+.advisory-card:nth-child(4) { animation-delay: 0.52s; }
+
+/* 3. Staggered Child Items: Pollutant Telemetry Cards */
+.pollutant-card {
+  animation: motionScaleFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.pollutant-card:nth-child(1) { animation-delay: 0.36s; }
+.pollutant-card:nth-child(2) { animation-delay: 0.42s; }
+.pollutant-card:nth-child(3) { animation-delay: 0.48s; }
+.pollutant-card:nth-child(4) { animation-delay: 0.54s; }
+.pollutant-card:nth-child(5) { animation-delay: 0.60s; }
+.pollutant-card:nth-child(6) { animation-delay: 0.66s; }
+
+/* 4. Weather Telemetry Bar */
+.weather-telemetry .weather-box {
+  animation: motionFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.weather-telemetry .weather-box:nth-child(1) { animation-delay: 0.52s; }
+.weather-telemetry .weather-box:nth-child(2) { animation-delay: 0.58s; }
+.weather-telemetry .weather-box:nth-child(3) { animation-delay: 0.64s; }
+.weather-telemetry .weather-box:nth-child(4) { animation-delay: 0.70s; }
+
+/* 5. Shadcn UI Style Pill Badges & Buttons */
+.nav-action-pill,
+.route-action-btn,
+.icon-btn,
+.scrubber-btn,
+.view-toggle-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.nav-action-pill:hover,
+.route-action-btn:hover,
+.view-toggle-btn:hover {
+  transform: translateY(-2px);
+}
+
+.nav-action-pill:active,
+.route-action-btn:active,
+.icon-btn:active,
+.scrubber-btn:active {
+  transform: scale(0.96);
+}
+
+/* 6. Shadcn UI Glass Card Elevation and Hover States */
+.glass-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.35), 0 0 20px rgba(59, 130, 246, 0.08);
+}
+
+html.light .glass-card:hover {
+  box-shadow: 0 14px 36px -4px rgba(71, 85, 105, 0.12), 0 0 20px rgba(59, 130, 246, 0.06);
+}
+
+.pollutant-card:hover,
+.advisory-card:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.weather-telemetry .weather-box:hover {
+  transform: translateY(-2px);
+}
+
+/* 7. Framer Motion Modal Dialogs & Drawers */
+.modal-content,
+.compare-modal-card,
+.alerts-modal-card {
+  animation: motionBounceIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ai-chat-drawer {
+  animation: motionSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 8. Toast Notifications */
+.toast {
+  animation: motionFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+
 
 
 

@@ -1455,6 +1455,9 @@ class AirSenseApp {
     document.getElementById('weather-humidity').textContent = `${station.humidity}%`;
     document.getElementById('weather-visibility').textContent = `${station.visibility} km`;
 
+    // Update Live Health Impact & Inhalation Intelligence Widget
+    this.updateHealthImpactWidget(station, info);
+
     // Coupled Atmospheric Physics & Inversion Profile
     const profileData = await fetchAtmosphericProfile(station.lat, station.lng);
     this.currentAtmosphericProfile = profileData;
@@ -1574,6 +1577,78 @@ class AirSenseApp {
       if (purifier) purifier.textContent = 'Optional';
       if (outdoor) outdoor.textContent = 'Ideal Conditions';
       if (windows) windows.textContent = 'Open for Air';
+    }
+  }
+
+  updateHealthImpactWidget(station, info) {
+    // 1. Cigarette Equivalence (Berkeley Earth: ~22 µg/m3 PM2.5 = 1 cig/day)
+    const pm25 = station.pm25 || 25;
+    const cigs = Math.max(0.2, (pm25 / 22)).toFixed(1);
+    const cigEl = document.getElementById('cigarette-count');
+    if (cigEl) cigEl.textContent = `~${cigs}`;
+
+    // 2. Sensitive Risk & Pulse Badge
+    const riskEl = document.getElementById('sensitive-risk-val');
+    const pulseBadge = document.getElementById('health-impact-pulse');
+    const pulseDot = document.getElementById('health-impact-dot');
+    const pulseTag = document.getElementById('health-impact-tag');
+    const cleanWinEl = document.getElementById('clean-window-val');
+
+    let riskText = 'High Alert';
+    let riskColor = '#EF4444';
+    let badgeText = 'HIGH EXPOSURE';
+    let cleanWin = '2:00 PM – 4:30 PM';
+
+    if (station.aqi > 300) {
+      riskText = 'Extreme Hazard';
+      riskColor = '#EF4444';
+      badgeText = 'CRITICAL ALERT';
+      cleanWin = '2:30 PM – 4:00 PM';
+    } else if (station.aqi > 200) {
+      riskText = 'High Precaution';
+      riskColor = '#F97316';
+      badgeText = 'HIGH EXPOSURE';
+      cleanWin = '1:30 PM – 4:30 PM';
+    } else if (station.aqi > 100) {
+      riskText = 'Moderate Alert';
+      riskColor = '#F59E0B';
+      badgeText = 'MODERATE RISK';
+      cleanWin = '12:00 PM – 5:00 PM';
+    } else {
+      riskText = 'Safe Activity';
+      riskColor = '#10B981';
+      badgeText = 'SAFE WINDOW';
+      cleanWin = 'All Day Clean';
+    }
+
+    if (riskEl) {
+      riskEl.textContent = riskText;
+      riskEl.style.color = riskColor;
+    }
+    if (pulseTag) pulseTag.textContent = badgeText;
+    if (pulseDot) pulseDot.style.backgroundColor = riskColor;
+    if (pulseBadge) {
+      pulseBadge.style.color = riskColor;
+      pulseBadge.style.borderColor = `${riskColor}55`;
+      pulseBadge.style.background = `${riskColor}22`;
+    }
+    if (cleanWinEl) cleanWinEl.textContent = cleanWin;
+
+    // 3. Respiratory Burden Progress Bar
+    const pct = Math.min(100, Math.max(12, Math.round((station.aqi / 400) * 100)));
+    const pctEl = document.getElementById('respiratory-pct-val');
+    const barEl = document.getElementById('respiratory-progress-bar');
+    if (pctEl) {
+      pctEl.textContent = `${pct}% ${pct > 75 ? 'Critical' : pct > 50 ? 'Elevated' : 'Moderate'}`;
+      pctEl.style.color = riskColor;
+    }
+    if (barEl) {
+      barEl.style.width = `${pct}%`;
+      barEl.style.background = pct > 75
+        ? 'linear-gradient(90deg, #F59E0B, #EF4444)'
+        : pct > 50
+          ? 'linear-gradient(90deg, #10B981, #F59E0B)'
+          : 'linear-gradient(90deg, #10B981, #06B6D4)';
     }
   }
 
